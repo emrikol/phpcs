@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Emrikol.Comments.DocblockTypeSync` — ensures docblock `@param`/`@return` tags match code-side type declarations. Auto-generates missing docblocks, adds missing tags, fills in empty types, and warns on type drift. Recognizes valid type specializations (e.g., `string[]` for `array`, `\WP_Post` for `object`). Configurable `generate_missing_docblocks` and `report_type_drift` properties.
 - `Emrikol.Classes.TypedProperty` — enforces type declarations on all class properties. Skips constructor promotion parameters (handled by `TypeHinting`).
 - `Emrikol.PHP.DiscouragedMixedType` — warns when `mixed` is used as a type for parameters, return types, or properties. Uses warnings (not errors) since `mixed` is sometimes necessary. Covers functions, closures, and arrow functions.
 - `Emrikol.Comments.PhpcsDirective` — enforces surgical use of PHPCS suppression directives. Flags bare `phpcs:ignore`/`phpcs:disable`, unmatched `phpcs:disable` without `phpcs:enable`, and `phpcs:ignore-file`. Auto-fixes legacy `@codingStandardsIgnore*` directives to modern equivalents. Errors from this sniff cannot be self-suppressed.

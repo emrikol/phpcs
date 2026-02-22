@@ -332,6 +332,87 @@ Errors and warnings from this sniff cannot be suppressed by `phpcs:ignore` on th
 
 ---
 
+### `Emrikol.Comments.DocblockTypeSync`
+
+Ensures that docblock `@param`/`@return` tags match code-side type declarations. If a function has typed parameters or a return type, the docblock should reflect those types. Creates missing docblocks, adds missing tags, fills in missing types, and warns on type drift.
+
+**Error codes:** `MissingParamType`, `MissingParamTag`, `MissingReturnType`, `MissingReturnTag`, `MissingDocblock`
+
+**Warning codes:** `TypeDrift`
+
+**Auto-fix:** Yes for all error codes. `TypeDrift` is a warning only (developer must decide which is correct).
+
+```php
+// ERROR (MissingDocblock): No docblock for typed function
+function greet(string $name): string { return "Hello, $name"; }
+
+// ERROR (MissingParamType): @param exists but has no type
+/**
+ * @param $name The name.
+ */
+function greet(string $name): string {}
+
+// ERROR (MissingParamTag): Docblock exists but @param tag is missing
+/**
+ * @return string
+ */
+function greet(string $name): string {}
+
+// ERROR (MissingReturnTag): Docblock exists but @return tag is missing
+/**
+ * @param string $name The name.
+ */
+function greet(string $name): string {}
+
+// WARNING (TypeDrift): Docblock type contradicts code type
+/**
+ * @param int $name The name.
+ */
+function greet(string $name): string {}
+
+// OK — types match
+/**
+ * @param string $name The name.
+ *
+ * @return string
+ */
+function greet(string $name): string {}
+```
+
+**Specialization detection:** The sniff recognizes when a docblock type is a valid refinement of the code type and does not flag it as drift:
+
+| Code type | Docblock type | Status |
+|---|---|---|
+| `array` | `string[]`, `array<string, int>` | Valid specialization |
+| `object` | `\WP_Post` | Valid specialization |
+| `callable` | `\Closure`, `callable(string): int` | Valid specialization |
+| `iterable` | `iterable<string>` | Valid specialization |
+| `?array` | `string[]\|null` | Valid (nullable specialization) |
+| `string` | `int` | TypeDrift warning |
+
+**Nullable conversion:** `?string` in code becomes `string|null` in generated docblocks (PHPDoc convention).
+
+**Skipped cases:** Functions with no typed parameters and no return type, `{@inheritdoc}` docblocks, closures/arrow functions (T_FUNCTION only), `__construct`/`__destruct`/`__clone` return types.
+
+#### Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `generate_missing_docblocks` | `bool` | `true` | Set `false` to only fix existing docblocks (suppresses `MissingDocblock`). |
+| `report_type_drift` | `bool` | `true` | Set `false` to suppress `TypeDrift` warnings. |
+
+**Example — disable docblock generation:**
+
+```xml
+<rule ref="Emrikol.Comments.DocblockTypeSync">
+    <properties>
+        <property name="generate_missing_docblocks" value="false" />
+    </properties>
+</rule>
+```
+
+---
+
 ### `Emrikol.WordPress.NoHookClosure`
 
 Forbids closures and arrow functions as WordPress hook callbacks. Closures passed to `add_action()`/`add_filter()` cannot be unhooked with `remove_action()`/`remove_filter()`, breaking WordPress extensibility.
