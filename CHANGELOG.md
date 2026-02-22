@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-02-22
+
+### Fixed
+
+- `Emrikol.Namespaces.GlobalNamespace` — no longer flags namespace, class, interface, trait, or enum declarations as unqualified global class references. Previously, names like `WP_TimeSync` in `namespace WP_TimeSync;` or `class WP_TimeSync {}` would be falsely flagged (and the auto-fixer would produce invalid PHP like `namespace \WP_TimeSync;`).
+- `Emrikol.Namespaces.GlobalNamespace` — fixer state (`flagged_errors`, `use_statements`) now resets correctly on each processing pass via `T_OPEN_TAG`. Previously, state persisted across fixer iterations, which could prevent fixes from being applied.
+- `BaseSniffTestCase::check_file()` — sniff properties are now stored through the PHPCS ruleset property mechanism instead of direct object assignment. This ensures properties survive `populateTokenListeners()` sniff object recreation during fixer iterations, fixing silent fixer failures in tests.
+
 ## [0.2.0] - 2026-02-22
 
 ### Added

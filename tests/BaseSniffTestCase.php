@@ -38,15 +38,29 @@ abstract class BaseSniffTestCase extends TestCase {
 
 		$ruleset = new Ruleset( $config );
 
-		// Set sniff properties if provided.
+		// Set sniff properties via the ruleset property storage so they survive
+		// fixer iterations (populateTokenListeners() recreates sniff objects).
 		if ( ! empty( $properties ) ) {
-			foreach ( $ruleset->sniffs as $sniff_class => $sniff_obj ) {
-				foreach ( $properties as $key => $value ) {
-					if ( property_exists( $sniff_obj, $key ) ) {
-						$sniff_obj->$key = $value;
-					}
+			foreach ( $properties as $key => $value ) {
+				if ( is_array( $value ) ) {
+					$name      = $key . '[]';
+					$formatted = implode( ',', $value );
+				} elseif ( is_bool( $value ) ) {
+					$name      = $key;
+					$formatted = $value ? 'true' : 'false';
+				} else {
+					$name      = $key;
+					$formatted = (string) $value;
 				}
+
+				$ruleset->ruleset[ $sniff_code ]['properties'][ $name ] = array(
+					'scope' => 'sniff',
+					'value' => $formatted,
+				);
 			}
+
+			// Re-create sniff objects with the new properties applied.
+			$ruleset->populateTokenListeners();
 		}
 
 		$file = new LocalFile( $fixture_path, $ruleset, $config );

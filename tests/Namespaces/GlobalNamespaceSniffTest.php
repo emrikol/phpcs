@@ -365,6 +365,109 @@ class GlobalNamespaceSniffTest extends BaseSniffTestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// Declaration contexts (should NOT be flagged)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Namespace, class, interface, trait, and enum declarations should not be flagged
+	 * even when the declared name matches a global class pattern.
+	 *
+	 * @return void
+	 */
+	public function test_no_errors_on_declarations(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'global-namespace-declarations.inc' ),
+			self::SNIFF_CODE,
+			array(
+				'known_global_classes'    => array( 'WP_Widget', 'WP_Interface' ),
+				'auto_detect_php_classes' => false,
+				'class_patterns'          => array( '/^WP_/' ),
+			)
+		);
+
+		// Namespace declaration — no error.
+		$this->assert_no_error_on_line( $file, 4 );
+
+		// Class declaration — no error.
+		$this->assert_no_error_on_line( $file, 7 );
+
+		// Interface declaration — no error.
+		$this->assert_no_error_on_line( $file, 15 );
+
+		// Trait declaration — no error.
+		$this->assert_no_error_on_line( $file, 20 );
+
+		// Enum declaration — no error.
+		$this->assert_no_error_on_line( $file, 25 );
+	}
+
+	/**
+	 * References in extends, implements, type hints, return types, and new expressions
+	 * should still be flagged even when declarations are skipped.
+	 *
+	 * @return void
+	 */
+	public function test_errors_on_references_in_declaration_file(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'global-namespace-declarations.inc' ),
+			self::SNIFF_CODE,
+			array(
+				'known_global_classes'    => array( 'WP_Widget', 'WP_Interface' ),
+				'auto_detect_php_classes' => false,
+				'class_patterns'          => array( '/^WP_/' ),
+			)
+		);
+
+		// Line 10: new WP_Post() — reference, error.
+		$this->assert_error_code_on_line( $file, 10, self::ERROR_STRING );
+
+		// Line 31: extends WP_Widget — reference, error.
+		$this->assert_error_code_on_line( $file, 31, self::ERROR_STRING );
+
+		// Line 34: implements WP_Interface — reference, error.
+		$this->assert_error_code_on_line( $file, 34, self::ERROR_STRING );
+
+		// Line 37: WP_Post type hint — reference, error.
+		$this->assert_error_code_on_line( $file, 37, self::ERROR_TYPE_HINT );
+
+		// Line 40: WP_Query return type — reference, error.
+		$this->assert_error_code_on_line( $file, 40, self::ERROR_RETURN_TYPE );
+
+		// Line 42: new WP_Query() — reference, error.
+		$this->assert_error_code_on_line( $file, 42, self::ERROR_STRING );
+	}
+
+	/**
+	 * The fixer should not attempt to prepend backslash to declaration names.
+	 *
+	 * @return void
+	 */
+	public function test_fix_does_not_modify_declarations(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'global-namespace-declarations.inc' ),
+			self::SNIFF_CODE,
+			array(
+				'known_global_classes'    => array( 'WP_Widget', 'WP_Interface' ),
+				'auto_detect_php_classes' => false,
+				'class_patterns'          => array( '/^WP_/' ),
+			)
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// Declarations must NOT have a backslash prepended.
+		$this->assertStringContainsString( 'namespace WP_TimeSync;', $fixed, 'Namespace declaration should not be modified.' );
+		$this->assertStringContainsString( 'class WP_TimeSync_Plugin', $fixed, 'Class declaration should not be modified.' );
+		$this->assertStringContainsString( 'interface WP_TimeSync_Interface', $fixed, 'Interface declaration should not be modified.' );
+		$this->assertStringContainsString( 'trait WP_TimeSync_Trait', $fixed, 'Trait declaration should not be modified.' );
+		$this->assertStringContainsString( 'enum WP_TimeSync_Status', $fixed, 'Enum declaration should not be modified.' );
+
+		// References SHOULD have a backslash prepended.
+		$this->assertStringContainsString( 'extends \WP_Widget', $fixed, 'extends reference should be backslash-prefixed.' );
+		$this->assertStringContainsString( 'implements \WP_Interface', $fixed, 'implements reference should be backslash-prefixed.' );
+	}
+
+	// -------------------------------------------------------------------------
 	// Auto-fix
 	// -------------------------------------------------------------------------
 

@@ -78,19 +78,12 @@ class GlobalNamespaceSniff implements Sniff {
 	private $flagged_errors = array();
 
 	/**
-	 * The file currently being processed (used to reset state between files).
-	 *
-	 * @var string
-	 */
-	private $current_file = '';
-
-	/**
 	 * Returns an array of tokens this test wants to listen for.
 	 *
 	 * @return array
 	 */
 	public function register(): array {
-		return array( T_NAMESPACE, T_USE, T_FUNCTION, T_STRING );
+		return array( T_OPEN_TAG, T_NAMESPACE, T_USE, T_FUNCTION, T_STRING );
 	}
 
 	/**
@@ -102,19 +95,19 @@ class GlobalNamespaceSniff implements Sniff {
 	 * @return void
 	 */
 	public function process( File $phpcs_file, $stack_ptr ): void {
-		// Reset state when processing a new file.
-		$filename = $phpcs_file->getFilename();
-		if ( $this->current_file !== $filename ) {
-			$this->current_file  = $filename;
+		$tokens = $phpcs_file->getTokens();
+
+		// Reset per-pass state on T_OPEN_TAG (fires once at the start of each
+		// processing pass, including each fixer iteration).
+		if ( T_OPEN_TAG === $tokens[ $stack_ptr ]['code'] ) {
 			$this->use_statements = array();
 			$this->flagged_errors = array();
+			return;
 		}
 
 		if ( ! $this->file_has_namespace( $phpcs_file ) ) {
 			return;
 		}
-
-		$tokens = $phpcs_file->getTokens();
 
 		switch ( $tokens[ $stack_ptr ]['code'] ) {
 			case T_USE:
@@ -246,6 +239,12 @@ class GlobalNamespaceSniff implements Sniff {
 
 		$prev_ptr = $phpcs_file->findPrevious( T_WHITESPACE, $stack_ptr - 1, null, true );
 		if ( T_NS_SEPARATOR === $tokens[ $prev_ptr ]['code'] ) {
+			return;
+		}
+
+		// Skip declaration contexts — the name being declared is not a reference.
+		$declaration_tokens = array( T_NAMESPACE, T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM );
+		if ( false !== $prev_ptr && in_array( $tokens[ $prev_ptr ]['code'], $declaration_tokens, true ) ) {
 			return;
 		}
 
