@@ -1,6 +1,6 @@
 # Emrikol PHPCS
 
-Custom [PHP CodeSniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer) standards for enforcing type safety, strict types, namespace declarations, and proper global class qualification in PHP projects.
+Custom [PHP CodeSniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer) standards for enforcing type safety, strict types, namespace declarations, proper global class qualification, and security hardening in PHP and WordPress projects.
 
 Built to consolidate duplicated custom sniffs across multiple projects into a single, reusable, Composer-installable package.
 
@@ -34,7 +34,6 @@ Create a `phpcs.xml.dist` in your project root:
     <!-- WordPress presets for type validation and global class checking -->
     <rule ref="./vendor/emrikol/phpcs/presets/wordpress-classes.xml" />
     <rule ref="./vendor/emrikol/phpcs/presets/wordpress-global-classes.xml" />
-    <rule ref="./vendor/emrikol/phpcs/presets/php-global-classes.xml" />
 </ruleset>
 ```
 
@@ -45,11 +44,10 @@ Create a `phpcs.xml.dist` in your project root:
 <ruleset name="My PHP Project">
     <rule ref="PSR12" />
     <rule ref="Emrikol" />
-
-    <!-- Core PHP global classes only -->
-    <rule ref="./vendor/emrikol/phpcs/presets/php-global-classes.xml" />
 </ruleset>
 ```
+
+> **Note:** PHP built-in classes (e.g., `DateTime`, `Exception`, `PDO`) are auto-detected at runtime — no preset file needed. The `php-global-classes.xml` preset is still available if you want to pin to a specific list (see [Presets](#presets)).
 
 Then run:
 
@@ -118,6 +116,7 @@ function getName(): string { return $this->name; }
 |---|---|---|---|
 | `validate_types` | `bool` | `false` | When `true`, validates return types against built-in PHP types and the `known_classes` list. Reports `InvalidReturnType` for unrecognized types. |
 | `known_classes` | `array` | `[]` | Class names considered valid return types when `validate_types` is enabled. Populate via `ruleset.xml` or include a preset. |
+| `auto_detect_php_classes` | `bool` | `true` | When `true`, auto-detects PHP built-in classes at runtime and treats them as valid return types (when `validate_types` is enabled). Set to `false` to rely solely on `known_classes` and presets. |
 
 **Example — enable type validation with custom classes:**
 
@@ -166,8 +165,9 @@ function get_post(WP_Post $post): WP_Query {}
 |---|---|---|---|
 | `known_global_classes` | `array` | `[]` | Explicit list of global class names to check. |
 | `class_patterns` | `array` | `[]` | Regex patterns to match class names (e.g., `/^WP_/`). |
+| `auto_detect_php_classes` | `bool` | `true` | When `true`, auto-detects PHP built-in classes at runtime (e.g., `DateTime`, `Exception`). Set to `false` to disable and rely solely on explicit lists, patterns, and presets. |
 
-All three detection methods (explicit list, regex patterns, and presets) are combinable. A class triggers an error if it matches **any** of them.
+All four detection methods (explicit list, regex patterns, presets, and auto-detection) are combinable. A class triggers an error if it matches **any** of them.
 
 **Example — custom class list and patterns:**
 
@@ -208,6 +208,288 @@ class MyClass {}
 namespace MyPlugin;
 class MyClass {}
 ```
+
+---
+
+### `Emrikol.Classes.TypedProperty`
+
+Enforces that all class properties have type declarations.
+
+**Error code:** `MissingPropertyType`
+
+**Auto-fix:** No. Property type choice requires human judgment.
+
+```php
+// ERROR: Missing type declaration for property '$name'
+class User {
+    public $name;
+    protected $age;
+}
+
+// OK
+class User {
+    public string $name;
+    protected int $age;
+    public readonly string $id;
+    public static int $count = 0;
+}
+```
+
+Constructor promotion parameters are skipped (handled by `TypeHinting`). Constants are not affected.
+
+---
+
+### `Emrikol.PHP.DiscouragedMixedType`
+
+Warns when `mixed` is used as a type declaration for function parameters, return types, or property types.
+
+**Warning codes:** `MixedParameterType`, `MixedReturnType`, `MixedPropertyType`
+
+**Auto-fix:** No. Uses `addWarning()` (not `addError()`) since `mixed` is sometimes necessary for third-party code compatibility. Suppress with `phpcs:ignore` when genuinely required.
+
+```php
+// WARNING: Parameter '$input' uses the 'mixed' type
+function process(mixed $input): mixed { return $input; }
+
+// OK — specific types
+function process(string $input): string { return $input; }
+
+// Suppress when necessary
+/** @phpcs:ignore Emrikol.PHP.DiscouragedMixedType.MixedParameterType */
+function handle(mixed $data): void {}
+```
+
+Covers `T_FUNCTION`, `T_CLOSURE`, and `T_FN` (arrow functions) for complete coverage.
+
+---
+
+### `Emrikol.Comments.PhpcsDirective`
+
+Enforces surgical use of PHPCS suppression directives. Bare (un-scoped) directives and file-level suppression are flagged. Unmatched disable/enable pairs are detected. Missing or malformed `--` note separators are caught and auto-fixed.
+
+**Error codes:** `BareIgnore`, `BareDisable`, `UnmatchedDisable`, `IgnoreFile`, `DeprecatedIgnoreLine`, `DeprecatedIgnoreStart`, `DeprecatedIgnoreEnd`, `MissingNoteSeparator`, `MalformedNoteSeparator`
+
+**Warning codes:** `UnmatchedEnable`
+
+**Auto-fix:** Yes. Legacy `@codingStandardsIgnore*` directives are converted to modern equivalents. Missing `--` note separators are inserted. Malformed separators (e.g., `Code--note`) are normalized to `Code -- note`.
+
+```php
+// ERROR: phpcs:ignore directive must specify sniff code(s)
+// phpcs:ignore
+$x = 1;
+
+// OK — surgical suppression
+// phpcs:ignore Emrikol.Functions.TypeHinting.MissingParameterType
+$x = 1;
+
+// ERROR: phpcs:disable without matching phpcs:enable
+// phpcs:disable Emrikol.PHP.StrictTypes
+
+// OK — matched pair
+// phpcs:disable Emrikol.PHP.StrictTypes
+$x = 1;
+// phpcs:enable Emrikol.PHP.StrictTypes
+
+// ERROR (auto-fixable): Missing note separator
+// phpcs:ignore Foo.Bar reason text here
+// Fixed to: phpcs:ignore Foo.Bar -- reason text here
+
+// ERROR (auto-fixable): Malformed separator
+// phpcs:ignore Foo.Bar--note
+// Fixed to: phpcs:ignore Foo.Bar -- note
+
+// WARNING: Enable without matching disable
+// phpcs:enable Some.Sniff.NeverDisabled
+
+// ERROR (auto-fixable): Deprecated directive
+// @codingStandardsIgnoreLine  →  phpcs:ignore
+```
+
+| Rule | Type | Description |
+|---|---|---|
+| Bare `phpcs:ignore` | Error | Must specify sniff code(s) |
+| Bare `phpcs:disable` | Error | Must specify sniff code(s) |
+| `phpcs:disable` without `phpcs:enable` | Error | Must have matching enable before EOF |
+| `phpcs:enable` without prior `phpcs:disable` | Warning | May indicate stale or misplaced directive |
+| `phpcs:ignore-file` | Error | Always forbidden |
+| Missing `--` note separator | Error (fixable) | Notes after sniff codes need `--` separator |
+| Malformed `--` separator | Error (fixable) | `--` needs surrounding spaces to be recognized |
+| `@codingStandardsIgnore*` | Error (fixable) | Auto-fixed to modern equivalents |
+
+Errors and warnings from this sniff cannot be suppressed by `phpcs:ignore` on the same line (suppression bypass).
+
+**Note on cascading errors:** A missing `--` separator corrupts the sniff code that PHPCS parses (e.g., `phpcs:enable Foo.Bar done with this` becomes code `Foo.Bar done with this`). If the corresponding `phpcs:disable Foo.Bar` uses the correct code, the enable won't match, producing both `MissingNoteSeparator` and `UnmatchedDisable`. Running `phpcbf` fixes the separator, which resolves the mismatch.
+
+---
+
+### `Emrikol.WordPress.NoHookClosure`
+
+Forbids closures and arrow functions as WordPress hook callbacks. Closures passed to `add_action()`/`add_filter()` cannot be unhooked with `remove_action()`/`remove_filter()`, breaking WordPress extensibility.
+
+**Error codes:** `ClosureHookCallback`, `ClosureWrapperCallback`, `FirstClassCallableCallback`, `AnonymousClassCallback`
+
+**Warning codes:** `VariableCallback`, `IndirectHookRegistration`
+
+**Auto-fix:** No. Converting a closure to a named function requires human judgment.
+
+```php
+// ERROR: Closure used as callback for 'add_action'
+add_action( 'init', function() {
+    do_something();
+} );
+
+// ERROR: Arrow function used as callback
+add_filter( 'the_content', fn( $content ) => $content . ' suffix' );
+
+// ERROR: First-class callable creates a Closure object
+add_action( 'init', my_function(...) );
+
+// ERROR: Closure wrapper returns a Closure
+add_action( 'init', Closure::fromCallable( 'my_function' ) );
+
+// ERROR: Anonymous class can't be unhooked
+add_action( 'init', new class { public function __invoke() {} } );
+
+// WARNING: Variable callback — can't verify at static analysis time
+add_action( 'init', $callback );
+
+// WARNING: Indirect hook registration bypasses static checks
+call_user_func( 'add_action', 'init', 'my_function' );
+
+// OK — named function
+add_action( 'init', 'my_init_function' );
+
+// OK — method reference
+add_action( 'init', array( $this, 'init_method' ) );
+add_filter( 'the_content', [ $this, 'filter_content' ] );
+```
+
+#### Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `hook_functions` | `string` | `add_action,add_filter` | Comma-separated list of hook registration functions to check. Add custom wrappers as needed. |
+
+**Example — add custom hook wrappers:**
+
+```xml
+<rule ref="Emrikol.WordPress.NoHookClosure">
+    <properties>
+        <property name="hook_functions" value="add_action,add_filter,my_add_action" />
+    </properties>
+</rule>
+```
+
+#### Known limitations
+
+This sniff performs static analysis and cannot detect closures hidden behind dynamic patterns:
+
+| Pattern | Detected? | Notes |
+|---|---|---|
+| `add_action( 'hook', function() {} )` | Yes | Direct closure |
+| `add_action( 'hook', fn() => ... )` | Yes | Direct arrow function |
+| `add_action( 'hook', my_func(...) )` | Yes | First-class callable |
+| `add_action( 'hook', Closure::fromCallable(...) )` | Yes | Closure wrapper |
+| `add_action( 'hook', new class { ... } )` | Yes | Anonymous class |
+| `add_action( 'hook', $callback )` | Warning | Could be a closure or named function — can't tell statically |
+| `add_action( 'hook', $obj->getCallback() )` | No | Method return value is opaque at analysis time |
+| `add_action( 'hook', $debug ? fn() => {} : 'func' )` | No | Ternary/conditional expressions not analyzed |
+| `add_action( 'hook', $callbacks['key'] )` | No | Array access not analyzed |
+| `call_user_func( 'add_action', ... )` | Warning | Indirect registration detected but callback not inspected |
+
+If you need stricter enforcement, pair this sniff with runtime checks or code review policies for the patterns above.
+
+---
+
+### `Emrikol.WordPress.RequirePermissionCallback`
+
+Requires that `register_rest_route()` calls include a `permission_callback` in the args array. REST API endpoints without explicit permission callbacks default to public access, which is a security risk. WordPress 5.5+ logs a `_doing_it_wrong` notice when `permission_callback` is missing.
+
+**Error code:** `MissingPermissionCallback`
+
+**Auto-fix:** No. Permission logic requires human judgment.
+
+```php
+// ERROR: Missing 'permission_callback' in register_rest_route() args
+register_rest_route( 'myplugin/v1', '/items', array(
+    'methods'  => 'GET',
+    'callback' => 'my_get_items',
+) );
+
+// OK — explicit permission callback
+register_rest_route( 'myplugin/v1', '/items', array(
+    'methods'             => 'GET',
+    'callback'            => 'my_get_items',
+    'permission_callback' => function() {
+        return current_user_can( 'edit_posts' );
+    },
+) );
+
+// OK — __return_true for intentionally public endpoints
+register_rest_route( 'myplugin/v1', '/public', array(
+    'methods'             => 'GET',
+    'callback'            => 'my_public_endpoint',
+    'permission_callback' => '__return_true',
+) );
+```
+
+Handles both single-route and multi-route formats:
+
+```php
+// Multi-route: each sub-array is checked individually
+register_rest_route( 'myplugin/v1', '/items', array(
+    array(
+        'methods'             => 'GET',
+        'callback'            => 'my_get_items',
+        'permission_callback' => '__return_true',  // OK
+    ),
+    array(
+        'methods'  => 'POST',
+        'callback' => 'my_create_item',
+        // ERROR: this sub-array is missing permission_callback
+    ),
+) );
+```
+
+Variable and function-call args are skipped (can't be checked statically).
+
+#### Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `route_functions` | `string` | `register_rest_route` | Comma-separated list of route registration functions to check. Add custom wrappers as needed. |
+
+---
+
+### `Emrikol.PHP.DisallowSuperglobalWrite`
+
+Forbids writing to PHP superglobals (`$_GET`, `$_POST`, `$_REQUEST`, `$_SERVER`, `$_COOKIE`, `$_SESSION`, `$_FILES`, `$_ENV`). Mutating superglobals creates hidden side-effects and breaks the principle of immutable input.
+
+**Error codes:** `SuperglobalWrite`, `SuperglobalUnset`
+
+**Auto-fix:** No. Refactoring superglobal writes requires human judgment.
+
+```php
+// ERROR: Direct write to superglobal '$_GET'
+$_GET['injected'] = 'value';
+
+// ERROR: Compound assignment
+$_POST['data'] .= 'appended';
+
+// ERROR: Unset superglobal
+unset( $_GET['key'] );
+
+// OK — reading superglobals
+$name = $_GET['name'];
+$data = sanitize_text_field( $_POST['input'] );
+if ( isset( $_GET['action'] ) ) { ... }
+```
+
+#### Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `superglobals` | `string` | `$_GET,$_POST,$_REQUEST,$_SERVER,$_COOKIE,$_SESSION,$_FILES,$_ENV` | Comma-separated list of superglobals to monitor for writes. |
 
 ---
 
@@ -262,10 +544,21 @@ Configures `GlobalNamespaceSniff` with a `/^WP_/` regex pattern to catch any Wor
 
 ### `presets/php-global-classes.xml`
 
-Configures `GlobalNamespaceSniff` with ~75 common global PHP classes (`DateTime`, `Exception`, `PDO`, SPL classes, Reflection classes, etc.).
+Configures `GlobalNamespaceSniff` with all built-in PHP classes and interfaces across currently supported PHP versions. Auto-generated from official PHP Docker images using `bin/generate-php-class-list.sh`.
+
+> **Note:** Since built-in PHP classes are now auto-detected at runtime by default, this preset is only needed if you want to pin to a specific class list (e.g., for reproducibility across environments) or if you've set `auto_detect_php_classes` to `false`.
 
 ```xml
 <rule ref="./vendor/emrikol/phpcs/presets/php-global-classes.xml" />
+```
+
+### `presets/php-X.Y-classes.xml`
+
+Per-version presets are also generated (e.g., `php-8.2-classes.xml`, `php-8.3-classes.xml`, etc.) if you need to target a specific PHP version rather than the combined list. Stale presets for EOL PHP versions are automatically removed when the generator runs.
+
+```xml
+<!-- Use a specific PHP version's classes instead of the combined list -->
+<rule ref="./vendor/emrikol/phpcs/presets/php-8.4-classes.xml" />
 ```
 
 Presets are combinable. For WordPress projects, include all three:
@@ -328,6 +621,44 @@ After running, review the changes and commit:
 git diff presets/wordpress-classes.xml
 git add presets/wordpress-classes.xml
 git commit -m "Update WordPress class list for WP X.Y"
+```
+
+---
+
+## Updating the PHP Class List
+
+The `presets/php-global-classes.xml` and per-version `presets/php-X.Y-classes.xml` files are auto-generated from official PHP Docker images. These should be regenerated when PHP versions reach end-of-life or new versions are released.
+
+```bash
+./bin/generate-php-class-list.sh
+```
+
+The script:
+
+1. Queries the [endoflife.date API](https://endoflife.date/api/php.json) for currently supported PHP versions (or accepts specific versions as arguments)
+2. Pulls official `php:X.Y-cli` Docker images for each version
+3. Runs `get_declared_classes()` + `get_declared_interfaces()` filtered to built-in classes via `ReflectionClass`
+4. Generates `presets/php-global-classes.xml` (union of all versions)
+5. Generates `presets/php-X.Y-classes.xml` per version
+6. Removes stale per-version presets for EOL PHP versions
+
+**Requirements:** Docker (running), `curl`, and either `jq` or `python3` (for API parsing).
+
+```bash
+# Scan all currently supported PHP versions (auto-detected)
+./bin/generate-php-class-list.sh
+
+# Scan specific versions only
+./bin/generate-php-class-list.sh 8.3 8.4
+```
+
+After running, review the changes and commit:
+
+```bash
+./bin/generate-php-class-list.sh
+git diff presets/
+git add presets/php-*-classes.xml presets/php-global-classes.xml
+git commit -m "Update PHP class lists"
 ```
 
 ---
