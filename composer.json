@@ -1,6 +1,6 @@
 {
 	"name": "emrikol/phpcs",
-	"description": "Emrikol custom PHP CodeSniffer standards — type safety, strict types, namespace enforcement, and global class qualification.",
+	"description": "Emrikol custom PHP CodeSniffer standards — type safety, docblock sync, namespace enforcement, WordPress best practices, and PHPCS directive hygiene.",
 	"type": "phpcodesniffer-standard",
 	"license": "GPL-3.0-or-later",
 	"authors": [
