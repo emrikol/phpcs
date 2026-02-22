@@ -13,6 +13,8 @@ namespace Emrikol\Sniffs\Functions;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 
+require_once dirname( __DIR__, 2 ) . '/Utils/PhpBuiltinClasses.php';
+
 /**
  * Class TypeDeclarationSniff
  *
@@ -32,6 +34,18 @@ class TypeDeclarationSniff implements Sniff {
 	 * @var bool
 	 */
 	public $validate_types = false;
+
+	/**
+	 * Whether to auto-detect PHP built-in classes at runtime.
+	 *
+	 * When true (default), uses get_declared_classes() and
+	 * get_declared_interfaces() filtered by ReflectionClass::isInternal()
+	 * to automatically recognize built-in PHP classes as valid return types
+	 * when validate_types is enabled.
+	 *
+	 * @var bool
+	 */
+	public $auto_detect_php_classes = true;
 
 	/**
 	 * Additional known class names considered valid return types.
@@ -310,6 +324,11 @@ class TypeDeclarationSniff implements Sniff {
 			}
 
 			if ( in_array( $type, $this->known_classes, true ) ) {
+				continue;
+			}
+
+			// Check auto-detected PHP built-in classes.
+			if ( $this->auto_detect_php_classes && in_array( $type, \Emrikol\Utils\PhpBuiltinClasses::get_classes(), true ) ) {
 				continue;
 			}
 

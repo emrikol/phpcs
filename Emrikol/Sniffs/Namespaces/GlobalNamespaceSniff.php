@@ -18,6 +18,8 @@ namespace Emrikol\Sniffs\Namespaces;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 
+require_once dirname( __DIR__, 2 ) . '/Utils/PhpBuiltinClasses.php';
+
 /**
  * Class GlobalNamespaceSniff
  *
@@ -35,6 +37,21 @@ class GlobalNamespaceSniff implements Sniff {
 	 * @var array
 	 */
 	public $known_global_classes = array();
+
+	/**
+	 * Whether to auto-detect PHP built-in classes at runtime.
+	 *
+	 * When true (default), uses get_declared_classes() and
+	 * get_declared_interfaces() filtered by ReflectionClass::isInternal()
+	 * to automatically recognize built-in PHP classes without needing
+	 * a preset file.
+	 *
+	 * Configurable via ruleset.xml. Set to false to disable and rely
+	 * solely on explicit lists, patterns, and presets.
+	 *
+	 * @var bool
+	 */
+	public $auto_detect_php_classes = true;
 
 	/**
 	 * Regex patterns to match global class names.
@@ -263,6 +280,11 @@ class GlobalNamespaceSniff implements Sniff {
 			if ( preg_match( $pattern, $class_name ) ) {
 				return true;
 			}
+		}
+
+		// Check auto-detected PHP built-in classes.
+		if ( $this->auto_detect_php_classes && in_array( $class_name, \Emrikol\Utils\PhpBuiltinClasses::get_classes(), true ) ) {
+			return true;
 		}
 
 		return false;
