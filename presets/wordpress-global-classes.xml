@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ruleset name="Emrikol WordPress Global Classes Preset">
+	<description>WordPress classes for the GlobalNamespaceSniff. Include this preset so WP_* classes are checked in namespaced code. Also adds a /^WP_/ regex pattern to catch any WP classes not in the explicit list.</description>
+
+	<rule ref="Emrikol.Namespaces.GlobalNamespace">
+		<properties>
+			<!-- Pattern catches any WP_ prefixed class, even those not explicitly listed. -->
+			<property name="class_patterns" type="array">
+				<element value="/^WP_/" />
+			</property>
+		</properties>
+	</rule>
+</ruleset>

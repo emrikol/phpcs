@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<ruleset name="Emrikol">
+	<description>Emrikol custom coding standards for PHP. Enforces type safety, strict types, namespace declarations, and proper global class qualification.</description>
+
+	<!-- All sniffs in the Sniffs/ directory are auto-discovered. -->
+</ruleset>

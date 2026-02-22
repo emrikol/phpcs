@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<ruleset name="Emrikol PHP Global Classes Preset">
+	<description>Common global PHP classes for the GlobalNamespaceSniff. Include this preset so core PHP classes like DateTime, Exception, PDO, etc. are checked.</description>
+
+	<rule ref="Emrikol.Namespaces.GlobalNamespace">
+		<properties>
+			<property name="known_global_classes" type="array">
+				<!-- Date/Time -->
+				<element value="DateTime" />
+				<element value="DateTimeImmutable" />
+				<element value="DateTimeZone" />
+				<element value="DateInterval" />
+				<element value="DatePeriod" />
+				<!-- Exceptions -->
+				<element value="Exception" />
+				<element value="Error" />
+				<element value="ErrorException" />
+				<element value="RuntimeException" />
+				<element value="InvalidArgumentException" />
+				<element value="LogicException" />
+				<element value="BadFunctionCallException" />
+				<element value="BadMethodCallException" />
+				<element value="DomainException" />
+				<element value="LengthException" />
+				<element value="OutOfBoundsException" />
+				<element value="OutOfRangeException" />
+				<element value="OverflowException" />
+				<element value="RangeException" />
+				<element value="UnderflowException" />
+				<element value="UnexpectedValueException" />
+				<element value="TypeError" />
+				<element value="ValueError" />
+				<element value="ArithmeticError" />
+				<element value="DivisionByZeroError" />
+				<!-- SPL -->
+				<element value="stdClass" />
+				<element value="ArrayObject" />
+				<element value="ArrayIterator" />
+				<element value="SplFileInfo" />
+				<element value="SplFileObject" />
+				<element value="SplQueue" />
+				<element value="SplStack" />
+				<element value="SplPriorityQueue" />
+				<element value="SplFixedArray" />
+				<element value="SplObjectStorage" />
+				<element value="DirectoryIterator" />
+				<element value="RecursiveDirectoryIterator" />
+				<element value="RecursiveIteratorIterator" />
+				<element value="FilterIterator" />
+				<element value="RegexIterator" />
+				<!-- Database -->
+				<element value="PDO" />
+				<element value="PDOException" />
+				<element value="PDOStatement" />
+				<element value="mysqli" />
+				<element value="mysqli_result" />
+				<element value="mysqli_stmt" />
+				<!-- Reflection -->
+				<element value="ReflectionClass" />
+				<element value="ReflectionMethod" />
+				<element value="ReflectionProperty" />
+				<element value="ReflectionFunction" />
+				<element value="ReflectionParameter" />
+				<element value="ReflectionException" />
+				<!-- Other common classes -->
+				<element value="Closure" />
+				<element value="Generator" />
+				<element value="Throwable" />
+				<element value="JsonSerializable" />
+				<element value="Serializable" />
+				<element value="Countable" />
+				<element value="Iterator" />
+				<element value="IteratorAggregate" />
+				<element value="Traversable" />
+				<element value="Stringable" />
+				<element value="WeakReference" />
+				<element value="WeakMap" />
+				<element value="Fiber" />
+				<element value="CurlHandle" />
+				<element value="DOMDocument" />
+				<element value="DOMElement" />
+				<element value="DOMNode" />
+				<element value="SimpleXMLElement" />
+				<element value="XMLReader" />
+				<element value="XMLWriter" />
+				<element value="ZipArchive" />
+				<element value="GdImage" />
+				<element value="Imagick" />
+				<element value="IntlDateFormatter" />
+				<element value="NumberFormatter" />
+				<element value="Locale" />
+			</property>
+		</properties>
+	</rule>
+</ruleset>
