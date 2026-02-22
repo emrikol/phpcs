@@ -209,6 +209,16 @@ namespace MyPlugin;
 class MyClass {}
 ```
 
+Some files intentionally live in the global namespace (bootstrap files, WordPress plugin entry points, helper files). Exclude them in your `phpcs.xml.dist`:
+
+```xml
+<rule ref="Emrikol.Namespaces.Namespace">
+    <exclude-pattern>src/bootstrap.php</exclude-pattern>
+    <exclude-pattern>src/helpers.php</exclude-pattern>
+    <exclude-pattern>my-plugin.php</exclude-pattern>
+</rule>
+```
+
 ---
 
 ### `Emrikol.Classes.TypedProperty`
