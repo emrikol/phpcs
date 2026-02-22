@@ -1,0 +1,47 @@
+name: Allow only collaborator PRs
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  gatekeep:
+    # Only OWNER or COLLABORATOR associations are allowed; Dependabot is exempted.
+    if: ${{ !contains(fromJson('["OWNER","COLLABORATOR"]'), github.event.pull_request.author_association)
+            && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and close PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const assoc = context.payload.pull_request.author_association;
+            const pr = context.payload.pull_request.number;
+            const { owner, repo } = context.repo;
+
+            const msg = [
+              'Thanks for your interest! This repository is published as-is under the GPL-3.0 license.',
+              '',
+              '**Pull requests are only accepted from collaborators** who have been explicitly added to this repository.',
+              '',
+              'If you would like to make changes, please **fork this project** and continue development under the GPL.',
+              '',
+              'For questions, ideas, or discussion, please use [GitHub Discussions](https://github.com/' + owner + '/' + repo + '/discussions).',
+              '',
+              '---',
+              '',
+              `Your association: **${assoc}**.`
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: pr,
+              body: msg
+            });
+
+            await github.rest.pulls.update({
+              owner, repo, pull_number: pr, state: 'closed'
+            });
