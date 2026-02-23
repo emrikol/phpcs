@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-02-23
+
+### Added
+
+- `bin/phpcs-lint.sh` — PHPCS wrapper script that discovers and chains `.phpcs.xml.dist` configs up the directory tree. Child configs override parent properties (prefixes, text domains) while inheriting all rules. Walks up to the outermost git root (or disk root), chains configs via `--standard=parent,child`. Supports `--fix` for phpcbf, target paths, and extra flags. Enables per-plugin prefix/text-domain configs in monorepos without hardcoded `<rule ref>` paths.
+
 ## [0.3.5] - 2026-02-23
 
 ### Fixed
