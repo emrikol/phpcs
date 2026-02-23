@@ -584,6 +584,71 @@ if ( isset( $_GET['action'] ) ) { ... }
 
 ---
 
+### `Emrikol.Comments.InlineCommentPeriod`
+
+Fixable replacement for `Squiz.Commenting.InlineComment.InvalidEndChar`. Inline comments starting with a Unicode letter must end in `.`, `!`, or `?`. Comments ending in a letter get a period auto-appended; other invalid endings are reported as non-fixable.
+
+**Error codes:** `AppendPeriod` (fixable), `InvalidEndChar` (non-fixable)
+
+**Auto-fix:** Yes for `AppendPeriod` — `phpcbf` appends a period to comments ending in a letter.
+
+```php
+// ERROR (AppendPeriod, fixable): Ends in a letter
+// This is a comment
+
+// ERROR (InvalidEndChar, non-fixable): Ends in a digit
+// PHP 8
+
+// OK — valid endings
+// This is a comment.
+// This is exciting!
+// Is this valid?
+```
+
+PHPCS directives (`phpcs:ignore`, `phpcs:disable`, `phpcs:enable`) and non-prose comments (starting with digits, symbols, `@`) are skipped. Consecutive `//` comment lines are aggregated into blocks — only the last line's ending is checked. Comments after closing braces (`} // end if`) are skipped.
+
+#### Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `extra_accepted_closers` | `string` | `''` | Literal characters to accept as valid closers. Each character in the string is a closer. |
+| `extra_accepted_pattern` | `string` | `''` | PCRE character class content (e.g., `\p{So}\p{Sm}`). Placed inside `/[...]$/u`. |
+| `extra_accepted_hex_ranges` | `string` | `''` | Comma-separated Unicode hex ranges (e.g., `0x1F600-0x1F64F,0x2600-0x26FF`). |
+
+**Example — allow common code punctuation:**
+
+```xml
+<rule ref="Emrikol.Comments.InlineCommentPeriod">
+    <properties>
+        <property name="extra_accepted_closers" value=":;)]}>" />
+    </properties>
+</rule>
+```
+
+**Example — allow emoji and math symbols:**
+
+```xml
+<rule ref="Emrikol.Comments.InlineCommentPeriod">
+    <properties>
+        <property name="extra_accepted_pattern" value="\p{So}\p{Sm}" />
+    </properties>
+</rule>
+```
+
+**Example — allow specific emoji blocks by codepoint range:**
+
+```xml
+<rule ref="Emrikol.Comments.InlineCommentPeriod">
+    <properties>
+        <property name="extra_accepted_hex_ranges" value="0x1F600-0x1F64F,0x2600-0x26FF" />
+    </properties>
+</rule>
+```
+
+Common [PCRE Unicode property classes](https://www.php.net/manual/en/regexp.reference.unicode.php): `\p{So}` (symbols/emoji), `\p{Sm}` (math symbols), `\p{Sc}` (currency), `\p{N}` (numbers), `\p{P}` (any punctuation).
+
+---
+
 ### `Emrikol.PHP.StrictTypes`
 
 Enforces that every PHP file contains `declare(strict_types=1);`.

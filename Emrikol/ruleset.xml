@@ -3,4 +3,13 @@
 	<description>Emrikol custom coding standards for PHP. Enforces type safety, strict types, namespace declarations, and proper global class qualification.</description>
 
 	<!-- All sniffs in the Sniffs/ directory are auto-discovered. -->
+
+	<!--
+		Exclude Squiz.Commenting.InlineComment.InvalidEndChar — replaced by
+		Emrikol.Comments.InlineCommentPeriod which adds phpcbf auto-fix
+		(appends a period) for comments ending in a letter.
+	-->
+	<rule ref="Squiz.Commenting.InlineComment">
+		<exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+	</rule>
 </ruleset>

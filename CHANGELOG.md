@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-22
+
+### Added
+
+- `Emrikol.Comments.InlineCommentPeriod` — fixable replacement for `Squiz.Commenting.InlineComment.InvalidEndChar`. Comments ending in a Unicode letter (`\p{L}`) get a period auto-appended via `phpcbf` (`AppendPeriod`); other invalid endings are reported as non-fixable (`InvalidEndChar`). PHPCS directives (`phpcs:ignore`, `phpcs:disable`, etc.) are skipped. Configurable extra accepted closers via three properties: `extra_accepted_closers` (literal characters), `extra_accepted_pattern` (PCRE Unicode property classes), and `extra_accepted_hex_ranges` (Unicode codepoint ranges).
+
 ## [0.2.3] - 2026-02-22
 
 ### Changed

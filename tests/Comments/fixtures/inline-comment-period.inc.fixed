@@ -1,0 +1,40 @@
+<?php
+// phpcs:disable Emrikol.Namespaces.Namespace,Emrikol.PHP.StrictTypes
+
+// Single comment ending with a letter.
+
+// This one has a period.
+
+// This one has an exclamation!
+
+// This one has a question?
+
+// phpcs:ignore Some.Sniff.Code
+
+// @var string $foo
+
+// 12345
+
+// Ends with a paren (like this)
+
+function foo(): void {
+	// Method-level comment.
+	$x = 1; // Inline trailing comment.
+	$y = 2; // Already correct.
+}
+
+// This is a multi-line
+// comment block that
+// ends with a letter.
+
+// This multi-line block
+// already ends properly.
+
+// This multi-line block
+// ends with a paren (like this)
+
+function bar(): void {
+	if ( true ) {
+		$z = 1;
+	} // end if
+}
