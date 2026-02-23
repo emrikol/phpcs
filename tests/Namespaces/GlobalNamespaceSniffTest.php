@@ -468,6 +468,69 @@ class GlobalNamespaceSniffTest extends BaseSniffTestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// Constant vs class context
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Constants matching class_patterns should NOT be flagged when used as bare values.
+	 *
+	 * @return void
+	 */
+	public function test_constants_not_flagged(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'global-namespace-constants.inc' ),
+			self::SNIFF_CODE,
+			array(
+				'known_global_classes'    => array(),
+				'auto_detect_php_classes' => false,
+				'class_patterns'          => array( '/^WP_/' ),
+			)
+		);
+
+		// Bare constant usages — no errors.
+		$this->assert_no_error_on_line( $file, 10 ); // if ( WP_DEBUG ).
+		$this->assert_no_error_on_line( $file, 15 ); // defined('WP_CLI') && WP_CLI.
+		$this->assert_no_error_on_line( $file, 20 ); // WP_CONTENT_DIR . '/uploads'.
+		$this->assert_no_error_on_line( $file, 23 ); // WP_DEBUG ? 'on' : 'off'.
+		$this->assert_no_error_on_line( $file, 27 ); // return WP_DEBUG.
+		$this->assert_no_error_on_line( $file, 31 ); // WP_DEBUG === true.
+		$this->assert_no_error_on_line( $file, 36 ); // intval( WP_DEBUG ).
+	}
+
+	/**
+	 * Class usages (new, ::, instanceof, catch) should still be flagged
+	 * even for names that also match constant patterns.
+	 *
+	 * @return void
+	 */
+	public function test_class_contexts_still_flagged(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'global-namespace-constants.inc' ),
+			self::SNIFF_CODE,
+			array(
+				'known_global_classes'    => array(),
+				'auto_detect_php_classes' => false,
+				'class_patterns'          => array( '/^WP_/' ),
+			)
+		);
+
+		// Line 43: WP_CLI::add_command() — static access.
+		$this->assert_error_code_on_line( $file, 43, self::ERROR_STRING );
+
+		// Line 46: new WP_Error().
+		$this->assert_error_code_on_line( $file, 46, self::ERROR_STRING );
+
+		// Line 50: instanceof WP_Query.
+		$this->assert_error_code_on_line( $file, 50, self::ERROR_STRING );
+
+		// Line 56: throw new WP_Exception().
+		$this->assert_error_code_on_line( $file, 56, self::ERROR_STRING );
+
+		// Line 57: catch ( WP_Exception $e ).
+		$this->assert_error_code_on_line( $file, 57, self::ERROR_STRING );
+	}
+
+	// -------------------------------------------------------------------------
 	// Auto-fix
 	// -------------------------------------------------------------------------
 

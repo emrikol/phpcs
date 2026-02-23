@@ -746,7 +746,7 @@ class DocblockTypeSyncSniffTest extends BaseSniffTestCase {
 		);
 
 		$this->assertSame( 0, $file->getErrorCount(), 'Type-drift fixture should have 0 errors.' );
-		$this->assertSame( 8, $file->getWarningCount(), 'Type-drift fixture should have exactly 8 warnings.' );
+		$this->assertSame( 10, $file->getWarningCount(), 'Type-drift fixture should have exactly 10 warnings.' );
 	}
 
 	// =========================================================================

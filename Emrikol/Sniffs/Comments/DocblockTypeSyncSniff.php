@@ -541,6 +541,10 @@ class DocblockTypeSyncSniff implements Sniff {
 	 * @return string The canonical lowercase type.
 	 */
 	private function normalize_type_alias( string $type ): string {
+		// Do NOT strip leading backslashes here. In namespaced code,
+		// \WP_Error (global) and WP_Error (relative to current namespace)
+		// are different types. A docblock saying WP_Error when the code
+		// says \WP_Error is a real mismatch and should be flagged.
 		$type = strtolower( trim( $type ) );
 
 		$aliases = array(

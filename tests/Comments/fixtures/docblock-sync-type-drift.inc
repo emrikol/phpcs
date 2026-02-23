@@ -64,3 +64,27 @@ function self_drift( string $name ): self {
 function return_array_drift(): array {
 	return array();
 }
+
+/**
+ * Leading backslash drift: \WP_Error (global) vs WP_Error (relative).
+ *
+ * In namespaced code these resolve to different classes. The docblock
+ * should use \WP_Error to match the code type.
+ *
+ * @param WP_Error $error The error.
+ *
+ * @return void
+ */
+function backslash_param_drift( \WP_Error $error ): void {
+}
+
+/**
+ * Leading backslash drift in union return type.
+ *
+ * @param string $name The name.
+ *
+ * @return bool|WP_Error
+ */
+function backslash_return_drift( string $name ): bool|\WP_Error {
+	return true;
+}

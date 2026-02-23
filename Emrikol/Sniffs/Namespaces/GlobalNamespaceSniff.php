@@ -209,10 +209,12 @@ class GlobalNamespaceSniff implements Sniff {
 				$return_types = explode( '|', $return_type );
 				foreach ( $return_types as $type ) {
 					if ( $this->is_global_class( $type ) && ! $this->is_imported( $type ) && ! $this->is_already_prefixed( $first_ptr, $tokens ) ) {
+						// Report at $first_ptr (the type name token) so the fix
+						// prepends the backslash before the type, not the colon.
 						$this->add_fixable_error(
 							$phpcs_file,
 							"Global class '{$type}' used as return type should be referenced with a leading backslash or imported with a 'use' statement.",
-							$colon_ptr,
+							$first_ptr,
 							'GlobalNamespaceReturnType'
 						);
 					}
@@ -248,6 +250,14 @@ class GlobalNamespaceSniff implements Sniff {
 			return;
 		}
 
+		// Only flag T_STRING tokens used in class contexts. Bare identifiers that
+		// happen to match class_patterns (e.g. WP_DEBUG, WP_CLI constants) are NOT
+		// class references and should not be flagged. Constants and functions in
+		// namespaced code fall back to global scope automatically in PHP.
+		if ( ! $this->is_class_context( $phpcs_file, $stack_ptr ) ) {
+			return;
+		}
+
 		$line = $tokens[ $stack_ptr ]['line'];
 		if ( isset( $this->flagged_errors[ $line ]['GlobalNamespace'] ) ) {
 			return;
@@ -259,6 +269,101 @@ class GlobalNamespaceSniff implements Sniff {
 			$stack_ptr,
 			'GlobalNamespace'
 		);
+	}
+
+	/**
+	 * Determines if a T_STRING token is used in a class context.
+	 *
+	 * Class contexts include: new expressions, static access (::), instanceof,
+	 * extends/implements, type hints (before $var), return types (after colon),
+	 * catch clauses, nullable types, and union/intersection types.
+	 *
+	 * Bare constant or function usages (e.g. WP_DEBUG, WP_CLI as boolean)
+	 * are NOT class contexts.
+	 *
+	 * @param File $phpcs_file The file being scanned.
+	 * @param int  $stack_ptr  The position of the T_STRING token.
+	 *
+	 * @return bool True if the token is used as a class reference.
+	 */
+	private function is_class_context( File $phpcs_file, int $stack_ptr ): bool {
+		$tokens = $phpcs_file->getTokens();
+
+		// Check next non-whitespace token.
+		$next_ptr = $phpcs_file->findNext( T_WHITESPACE, $stack_ptr + 1, null, true );
+		if ( false !== $next_ptr ) {
+			$next_code = $tokens[ $next_ptr ]['code'];
+
+			// ClassName::method() or ClassName::$prop or ClassName::CONST.
+			if ( T_DOUBLE_COLON === $next_code ) {
+				return true;
+			}
+
+			// Type hint: ClassName $var.
+			if ( T_VARIABLE === $next_code ) {
+				return true;
+			}
+		}
+
+		// Check prev non-whitespace token.
+		$prev_ptr = $phpcs_file->findPrevious( T_WHITESPACE, $stack_ptr - 1, null, true );
+		if ( false !== $prev_ptr ) {
+			$prev_code = $tokens[ $prev_ptr ]['code'];
+
+			// new ClassName.
+			if ( T_NEW === $prev_code ) {
+				return true;
+			}
+
+			// $x instanceof ClassName.
+			if ( T_INSTANCEOF === $prev_code ) {
+				return true;
+			}
+
+			// class Child extends ClassName.
+			if ( T_EXTENDS === $prev_code ) {
+				return true;
+			}
+
+			// class Foo implements ClassName.
+			if ( T_IMPLEMENTS === $prev_code ) {
+				return true;
+			}
+
+			// Nullable type: ?ClassName.
+			if ( T_NULLABLE === $prev_code ) {
+				return true;
+			}
+
+			// Union types: Type|ClassName.
+			if ( T_TYPE_UNION === $prev_code || T_BITWISE_OR === $prev_code ) {
+				return true;
+			}
+
+			// Intersection types: Type&ClassName.
+			if ( T_TYPE_INTERSECTION === $prev_code || T_BITWISE_AND === $prev_code ) {
+				return true;
+			}
+
+			// Catch clause: catch ( ClassName.
+			if ( T_OPEN_PARENTHESIS === $prev_code ) {
+				$before_paren = $phpcs_file->findPrevious( T_WHITESPACE, $prev_ptr - 1, null, true );
+				if ( false !== $before_paren && T_CATCH === $tokens[ $before_paren ]['code'] ) {
+					return true;
+				}
+			}
+
+			// Return type after colon: function foo(): ClassName.
+			// Also covers closures and arrow functions.
+			if ( T_COLON === $prev_code ) {
+				$before_colon = $phpcs_file->findPrevious( T_WHITESPACE, $prev_ptr - 1, null, true );
+				if ( false !== $before_colon && T_CLOSE_PARENTHESIS === $tokens[ $before_colon ]['code'] ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**

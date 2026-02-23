@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-02-22
+
+### Fixed
+
+- `Emrikol.Namespaces.GlobalNamespace` — constants matching `class_patterns` (e.g. `WP_DEBUG`, `WP_CLI` matching `/^WP_/`) are no longer falsely flagged as unqualified global class references. The sniff now checks surrounding token context (new, ::, instanceof, extends, type hints, catch, return types) and only flags identifiers used as class references.
+- `Emrikol.Namespaces.GlobalNamespace` — return type auto-fix now prepends the backslash before the type name instead of before the colon. Previously `function foo(): Exception` would be fixed to `function foo()\: Exception` (backslash before colon); now correctly produces `function foo(): \Exception`.
+- `Emrikol.Comments.DocblockTypeSync` — added test coverage for leading-backslash type drift (`\WP_Error` vs `WP_Error`). Added protective comment in `normalize_type_alias()` documenting why leading backslashes must not be stripped.
+
 ## [0.3.0] - 2026-02-22
 
 ### Added
