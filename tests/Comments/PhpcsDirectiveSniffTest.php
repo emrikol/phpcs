@@ -33,7 +33,7 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 	private const BARE_DISABLE = 'Emrikol.Comments.PhpcsDirective.BareDisable';
 
 	/**
-	 * Error code for unmatched disable directives.
+	 * Warning code for unmatched disable directives.
 	 *
 	 * @var string
 	 */
@@ -195,22 +195,23 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 	// ---- Unmatched disables ----
 
 	/**
-	 * Single unmatched disable should produce an error.
+	 * Single unmatched disable should produce a warning.
 	 *
 	 * @return void
 	 */
-	public function test_error_on_unmatched_disable(): void {
+	public function test_warning_on_unmatched_disable(): void {
 		$file = $this->check_file(
 			$this->get_fixture_path( 'phpcs-directive-unmatched.inc' ),
 			self::SNIFF_CODE
 		);
 
-		$this->assertSame( 1, $file->getErrorCount(), 'Unmatched fixture should have exactly 1 error.' );
-		$this->assert_error_code_on_line( $file, 2, self::UNMATCHED_DISABLE );
+		$this->assertSame( 0, $file->getErrorCount(), 'Unmatched fixture should have no errors.' );
+		$this->assertSame( 1, $file->getWarningCount(), 'Unmatched fixture should have exactly 1 warning.' );
+		$this->assert_warning_code_on_line( $file, 2, self::UNMATCHED_DISABLE );
 	}
 
 	/**
-	 * Mixed pairs: matched disable/enable is OK, unmatched is error.
+	 * Mixed pairs: matched disable/enable is OK, unmatched is warning.
 	 *
 	 * @return void
 	 */
@@ -220,18 +221,19 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		// StrictTypes is matched — no error.
-		$this->assert_no_error_on_line( $file, 2 );
+		// StrictTypes is matched — no warning.
+		$this->assert_no_warning_on_line( $file, 2 );
 
-		// TypeHinting is unmatched — error.
-		$this->assert_error_count_on_line( $file, 6, 1 );
-		$this->assert_error_code_on_line( $file, 6, self::UNMATCHED_DISABLE );
+		// TypeHinting is unmatched — warning.
+		$this->assert_warning_count_on_line( $file, 6, 1 );
+		$this->assert_warning_code_on_line( $file, 6, self::UNMATCHED_DISABLE );
 
-		$this->assertSame( 1, $file->getErrorCount() );
+		$this->assertSame( 0, $file->getErrorCount() );
+		$this->assertSame( 1, $file->getWarningCount() );
 	}
 
 	/**
-	 * Multiple unmatched disables for different sniffs should each produce an error.
+	 * Multiple unmatched disables for different sniffs should each produce a warning.
 	 *
 	 * @return void
 	 */
@@ -241,16 +243,17 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assertSame( 3, $file->getErrorCount(), 'Edge-cases fixture should have exactly 3 unmatched disable errors.' );
+		$this->assertSame( 0, $file->getErrorCount(), 'Edge-cases fixture should have no errors.' );
+		$this->assertSame( 3, $file->getWarningCount(), 'Edge-cases fixture should have exactly 3 unmatched disable warnings.' );
 
-		$this->assert_error_count_on_line( $file, 4, 1 );
-		$this->assert_error_code_on_line( $file, 4, self::UNMATCHED_DISABLE );
+		$this->assert_warning_count_on_line( $file, 4, 1 );
+		$this->assert_warning_code_on_line( $file, 4, self::UNMATCHED_DISABLE );
 
-		$this->assert_error_count_on_line( $file, 5, 1 );
-		$this->assert_error_code_on_line( $file, 5, self::UNMATCHED_DISABLE );
+		$this->assert_warning_count_on_line( $file, 5, 1 );
+		$this->assert_warning_code_on_line( $file, 5, self::UNMATCHED_DISABLE );
 
-		$this->assert_error_count_on_line( $file, 6, 1 );
-		$this->assert_error_code_on_line( $file, 6, self::UNMATCHED_DISABLE );
+		$this->assert_warning_count_on_line( $file, 6, 1 );
+		$this->assert_warning_code_on_line( $file, 6, self::UNMATCHED_DISABLE );
 	}
 
 	// ---- Bare enable clears all ----
@@ -426,9 +429,10 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 		);
 
 		// Only Generic.Formatting.SpaceAfterCast should be unmatched.
-		$this->assertSame( 1, $file->getErrorCount(), 'Should have exactly 1 unmatched disable error.' );
-		$this->assert_error_count_on_line( $file, 3, 1 );
-		$this->assert_error_code_on_line( $file, 3, self::UNMATCHED_DISABLE );
+		$this->assertSame( 0, $file->getErrorCount(), 'Should have no errors.' );
+		$this->assertSame( 1, $file->getWarningCount(), 'Should have exactly 1 unmatched disable warning.' );
+		$this->assert_warning_count_on_line( $file, 3, 1 );
+		$this->assert_warning_code_on_line( $file, 3, self::UNMATCHED_DISABLE );
 	}
 
 	// ---- Assumption tests: legacy directives in block comments ----
@@ -576,8 +580,8 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assert_error_count_on_line( $file, 4, 1 );
-		$this->assert_error_code_on_line( $file, 4, self::UNMATCHED_DISABLE );
+		$this->assert_warning_count_on_line( $file, 4, 1 );
+		$this->assert_warning_code_on_line( $file, 4, self::UNMATCHED_DISABLE );
 	}
 
 	/**
@@ -639,7 +643,8 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assertSame( 3, $file->getErrorCount(), 'Real-world errors fixture should have exactly 3 errors.' );
+		$this->assertSame( 2, $file->getErrorCount(), 'Real-world errors fixture should have exactly 2 errors.' );
+		$this->assertSame( 2, $file->getWarningCount(), 'Real-world errors fixture should have exactly 2 warnings.' );
 	}
 
 	// ---- Stress tests: complex patterns ----
@@ -821,8 +826,8 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assert_error_count_on_line( $file, 68, 1 );
-		$this->assert_error_code_on_line( $file, 68, self::UNMATCHED_DISABLE );
+		$this->assert_warning_count_on_line( $file, 68, 1 );
+		$this->assert_warning_code_on_line( $file, 68, self::UNMATCHED_DISABLE );
 	}
 
 	/**
@@ -868,8 +873,8 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assert_error_count_on_line( $file, 85, 1 );
-		$this->assert_error_code_on_line( $file, 85, self::UNMATCHED_DISABLE );
+		$this->assert_warning_count_on_line( $file, 85, 1 );
+		$this->assert_warning_code_on_line( $file, 85, self::UNMATCHED_DISABLE );
 	}
 
 	/**
@@ -883,7 +888,8 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assertSame( 7, $file->getErrorCount(), 'Stress fixture should have exactly 7 errors.' );
+		$this->assertSame( 5, $file->getErrorCount(), 'Stress fixture should have exactly 5 errors.' );
+		$this->assertSame( 3, $file->getWarningCount(), 'Stress fixture should have exactly 3 warnings.' );
 	}
 
 	/**
@@ -1424,8 +1430,8 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assert_error_count_on_line( $file, 10, 1 );
-		$this->assert_error_code_on_line( $file, 10, self::UNMATCHED_DISABLE );
+		$this->assert_warning_count_on_line( $file, 10, 1 );
+		$this->assert_warning_code_on_line( $file, 10, self::UNMATCHED_DISABLE );
 	}
 
 	/**
@@ -1482,7 +1488,7 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assert_error_code_on_line( $file, 18, self::UNMATCHED_DISABLE );
+		$this->assert_warning_code_on_line( $file, 18, self::UNMATCHED_DISABLE );
 	}
 
 	/**
@@ -1516,10 +1522,10 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 		$this->assert_error_code_on_line( $file, 28, self::MISSING_NOTE_SEPARATOR );
 
 		// Neither should have UnmatchedDisable — corrupted codes match.
-		$error_codes_26 = $this->get_error_codes_by_line( $file );
+		$warning_codes_26 = $this->get_warning_codes_by_line( $file );
 		$this->assertNotContains(
 			self::UNMATCHED_DISABLE,
-			$error_codes_26[26] ?? array(),
+			$warning_codes_26[26] ?? array(),
 			'Identically corrupted disable/enable should match (no UnmatchedDisable on line 26).'
 		);
 	}
@@ -1535,8 +1541,8 @@ class PhpcsDirectiveSniffTest extends BaseSniffTestCase {
 			self::SNIFF_CODE
 		);
 
-		$this->assertSame( 6, $file->getErrorCount(), 'Cascading mismatch fixture should have exactly 6 errors.' );
-		$this->assertSame( 2, $file->getWarningCount(), 'Cascading mismatch fixture should have exactly 2 warnings.' );
+		$this->assertSame( 4, $file->getErrorCount(), 'Cascading mismatch fixture should have exactly 4 errors.' );
+		$this->assertSame( 4, $file->getWarningCount(), 'Cascading mismatch fixture should have exactly 4 warnings.' );
 		$this->assertSame( 4, $file->getFixableCount(), 'Cascading mismatch fixture should have exactly 4 fixable errors.' );
 	}
 }

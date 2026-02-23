@@ -157,12 +157,12 @@ class PhpcsDirectiveSniff implements Sniff {
 
 		// Report any unmatched disables.
 		foreach ( $open_disables as $code => $token_ptr ) {
-			$this->add_unsuppressable_error(
+			$this->add_unsuppressable_warning(
 				$phpcs_file,
 				$token_ptr,
-				"phpcs:disable for '%s' has no matching phpcs:enable before end of file.",
+				"phpcs:disable for '%s' has no matching phpcs:enable before end of file. Consider adding a phpcs:enable before EOF, or moving the exclusion to .phpcs.xml.dist with an <exclude name=\"%s\"/> rule scoped to this file.",
 				'UnmatchedDisable',
-				array( $code )
+				array( $code, $code )
 			);
 		}
 	}
