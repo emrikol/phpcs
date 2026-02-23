@@ -40,6 +40,10 @@ class DocblockTypeSyncSniff implements Sniff {
 	/**
 	 * Tokens allowed between a docblock and the function keyword.
 	 *
+	 * Includes phpcs directive tokens (T_PHPCS_IGNORE, T_PHPCS_DISABLE,
+	 * T_PHPCS_ENABLE) which are transparent annotations that should not
+	 * break docblock-to-function association.
+	 *
 	 * @var array
 	 */
 	private $allowed_between = array(
@@ -50,6 +54,9 @@ class DocblockTypeSyncSniff implements Sniff {
 		T_STATIC,
 		T_ABSTRACT,
 		T_FINAL,
+		T_PHPCS_IGNORE,
+		T_PHPCS_DISABLE,
+		T_PHPCS_ENABLE,
 	);
 
 	/**
@@ -690,8 +697,12 @@ class DocblockTypeSyncSniff implements Sniff {
 		$tokens = $phpcs_file->getTokens();
 
 		// Find the first token of the function declaration (modifiers or function keyword).
+		// Also walk backward through phpcs directive comments so the generated
+		// docblock is inserted before them, not between them and the function.
 		$insert_before = $stack_ptr;
 		$check         = $stack_ptr - 1;
+
+		$phpcs_directives = array( T_PHPCS_IGNORE, T_PHPCS_DISABLE, T_PHPCS_ENABLE );
 
 		while ( $check >= 0 ) {
 			$code = $tokens[ $check ]['code'];
@@ -699,6 +710,9 @@ class DocblockTypeSyncSniff implements Sniff {
 				$insert_before = $check;
 				$check--;
 			} elseif ( T_WHITESPACE === $code ) {
+				$check--;
+			} elseif ( in_array( $code, $phpcs_directives, true ) ) {
+				$insert_before = $check;
 				$check--;
 			} else {
 				break;

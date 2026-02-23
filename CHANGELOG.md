@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-02-23
+
+### Fixed
+
+- `Emrikol.Comments.DocblockTypeSync` — phpcs directive comments (`// phpcs:ignore`, `// phpcs:disable`, `// phpcs:enable`) between a docblock and its function declaration no longer break the docblock association. Previously, any phpcs directive in that gap caused false `MissingDocblock` errors and the fixer would generate duplicate docblocks. PHPCS tokenizes these directives as `T_PHPCS_IGNORE`/`T_PHPCS_DISABLE`/`T_PHPCS_ENABLE` (not `T_COMMENT`), so they are now included in the `$allowed_between` token list and handled correctly by the fixer's insertion-point logic.
+
 ## [0.3.1] - 2026-02-22
 
 ### Fixed

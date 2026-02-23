@@ -1165,4 +1165,551 @@ class DocblockTypeSyncSniffTest extends BaseSniffTestCase {
 
 		$this->assertSame( 2, $file->getErrorCount(), 'Inline suppression fixture should have exactly 2 errors.' );
 	}
+
+	// =========================================================================
+	// Comment-between fixture — phpcs directives between docblock and function.
+	// =========================================================================
+
+	/**
+	 * Case 1: phpcs:ignore between docblock and function should not
+	 * break docblock association.
+	 *
+	 * @return void
+	 */
+	public function test_phpcs_ignore_between_docblock_and_function(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 15 );
+	}
+
+	/**
+	 * Case 2: Inline phpcs:ignore on function line should not affect
+	 * docblock detection.
+	 *
+	 * @return void
+	 */
+	public function test_inline_phpcs_ignore_no_effect_on_docblock(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 28 );
+	}
+
+	/**
+	 * Case 3: phpcs:disable between docblock and function should not
+	 * break docblock association.
+	 *
+	 * @return void
+	 */
+	public function test_phpcs_disable_between_docblock_and_function(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 42 );
+	}
+
+	/**
+	 * Case 4: A regular (non-phpcs) comment between docblock and function
+	 * should break the association. MissingDocblock expected.
+	 *
+	 * @return void
+	 */
+	public function test_regular_comment_breaks_docblock_association(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 59, self::MISSING_DOCBLOCK );
+	}
+
+	/**
+	 * Case 5: Multiple stacked phpcs:ignore comments should all be
+	 * transparent to docblock association.
+	 *
+	 * @return void
+	 */
+	public function test_multiple_phpcs_ignore_between(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 75 );
+	}
+
+	/**
+	 * Case 6a: phpcs:ignore between docblock and class method declaration.
+	 *
+	 * @return void
+	 */
+	public function test_phpcs_ignore_before_class_method(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 91 );
+	}
+
+	/**
+	 * Case 6b: phpcs:ignore between docblock and static class method.
+	 *
+	 * @return void
+	 */
+	public function test_phpcs_ignore_before_static_method(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 103 );
+	}
+
+	/**
+	 * Case 7: No docblock at all, just phpcs:ignore before function.
+	 * Should produce MissingDocblock.
+	 *
+	 * @return void
+	 */
+	public function test_no_docblock_with_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 112, self::MISSING_DOCBLOCK );
+	}
+
+	/**
+	 * Case 8: Complete docblock with phpcs:ignore between should produce
+	 * no errors — the docblock is found through the directive.
+	 *
+	 * @return void
+	 */
+	public function test_complete_docblock_with_phpcs_ignore_between(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 126 );
+	}
+
+	/**
+	 * Case 9: Incomplete docblock with phpcs:ignore between should produce
+	 * MissingParamTag and MissingReturnTag, NOT MissingDocblock.
+	 *
+	 * @return void
+	 */
+	public function test_incomplete_docblock_with_phpcs_ignore_between(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 139, self::MISSING_PARAM_TAG );
+		$this->assert_error_code_on_line( $file, 139, self::MISSING_RETURN_TAG );
+
+		// Must NOT get MissingDocblock — the existing docblock should be found.
+		$codes      = $this->get_error_codes_by_line( $file );
+		$line_codes = $codes[139] ?? array();
+		$this->assertNotContains(
+			self::MISSING_DOCBLOCK,
+			$line_codes,
+			'Incomplete docblock with phpcs:ignore between should not produce MissingDocblock.'
+		);
+	}
+
+	/**
+	 * Case 10: Non-doc block comment between docblock and function should
+	 * break association. MissingDocblock expected.
+	 *
+	 * @return void
+	 */
+	public function test_block_comment_breaks_docblock_association(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 155, self::MISSING_DOCBLOCK );
+	}
+
+	/**
+	 * Case 11: phpcs:ignore for this specific sniff should suppress the error.
+	 *
+	 * @return void
+	 */
+	public function test_self_suppression_with_phpcs_ignore_above(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 160 );
+	}
+
+	/**
+	 * Case 12: Existing docblock missing tags with phpcs:ignore between.
+	 * Should get MissingParamTag and MissingReturnTag, NOT MissingDocblock.
+	 *
+	 * @return void
+	 */
+	public function test_existing_docblock_missing_tags_with_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 170, self::MISSING_PARAM_TAG );
+		$this->assert_error_code_on_line( $file, 170, self::MISSING_RETURN_TAG );
+
+		$codes      = $this->get_error_codes_by_line( $file );
+		$line_codes = $codes[170] ?? array();
+		$this->assertNotContains(
+			self::MISSING_DOCBLOCK,
+			$line_codes,
+			'Existing docblock with missing tags should not produce MissingDocblock.'
+		);
+	}
+
+	/**
+	 * Case 13: phpcs:enable between docblock and function should not
+	 * break docblock association.
+	 *
+	 * @return void
+	 */
+	public function test_phpcs_enable_between_docblock_and_function(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 186 );
+	}
+
+	/**
+	 * Case 14: phpcs:ignore followed by a regular comment should break
+	 * the docblock association. MissingDocblock expected.
+	 *
+	 * @return void
+	 */
+	public function test_directive_then_regular_comment_breaks_association(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 203, self::MISSING_DOCBLOCK );
+	}
+
+	/**
+	 * Case 15: Regular comment followed by phpcs:ignore should break
+	 * the docblock association. MissingDocblock expected.
+	 *
+	 * @return void
+	 */
+	public function test_regular_then_directive_comment_breaks_association(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 219, self::MISSING_DOCBLOCK );
+	}
+
+	/**
+	 * Case 16: Blank line between phpcs:ignore and function should still
+	 * allow docblock association through the directive.
+	 *
+	 * @return void
+	 */
+	public function test_blank_line_after_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 234 );
+	}
+
+	/**
+	 * Case 17: Interface method with phpcs:ignore between docblock and
+	 * declaration should not break association.
+	 *
+	 * @return void
+	 */
+	public function test_phpcs_ignore_before_interface_method(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 249 );
+	}
+
+	/**
+	 * Case 18: Hash-style phpcs:ignore (# phpcs:ignore) between docblock
+	 * and function should not break association.
+	 *
+	 * @return void
+	 */
+	public function test_hash_style_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 263 );
+	}
+
+	/**
+	 * Case 19: Untyped function with phpcs:ignore should produce no
+	 * errors — nothing for DocblockTypeSync to check.
+	 *
+	 * @return void
+	 */
+	public function test_untyped_with_phpcs_ignore_no_errors(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 270 );
+	}
+
+	/**
+	 * Case 20: Abstract method with phpcs:ignore between docblock and
+	 * declaration should not break association.
+	 *
+	 * @return void
+	 */
+	public function test_phpcs_ignore_before_abstract_method(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 285 );
+	}
+
+	/**
+	 * Case 21: Mixed phpcs:ignore and phpcs:disable stacked between
+	 * docblock and function should all be transparent.
+	 *
+	 * @return void
+	 */
+	public function test_mixed_directive_types_between(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_error_on_line( $file, 300 );
+	}
+
+	/**
+	 * Case 22: Empty docblock with phpcs:ignore between should be found.
+	 * Should get MissingParamTag and MissingReturnTag, not MissingDocblock.
+	 *
+	 * @return void
+	 */
+	public function test_empty_docblock_with_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 311, self::MISSING_PARAM_TAG );
+		$this->assert_error_code_on_line( $file, 311, self::MISSING_RETURN_TAG );
+
+		$codes      = $this->get_error_codes_by_line( $file );
+		$line_codes = $codes[311] ?? array();
+		$this->assertNotContains(
+			self::MISSING_DOCBLOCK,
+			$line_codes,
+			'Empty docblock with phpcs:ignore between should not produce MissingDocblock.'
+		);
+	}
+
+	/**
+	 * Case 23: No docblock with phpcs:ignore should produce MissingDocblock.
+	 *
+	 * @return void
+	 */
+	public function test_no_docblock_with_phpcs_ignore_fixer_target(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_code_on_line( $file, 319, self::MISSING_DOCBLOCK );
+	}
+
+	// =========================================================================
+	// Comment-between fixer tests.
+	// =========================================================================
+
+	/**
+	 * Fixer: Complete docblock with phpcs:ignore between should NOT
+	 * generate a duplicate docblock.
+	 *
+	 * @return void
+	 */
+	public function test_fix_no_duplicate_docblock_with_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// Extract only the content between the phpcs:ignore and the function.
+		$ignore_marker = '// phpcs:ignore Some.Other.Sniff -- intentional suppression.';
+		$func_marker   = 'function already_has_docblock';
+
+		$ignore_pos = strpos( $fixed, $ignore_marker );
+		$func_pos   = strpos( $fixed, $func_marker );
+
+		$this->assertNotFalse( $ignore_pos, 'Fixed content should contain the phpcs:ignore marker.' );
+		$this->assertNotFalse( $func_pos, 'Fixed content should contain already_has_docblock().' );
+
+		// The region between the phpcs:ignore and the function must NOT contain
+		// a generated docblock — the existing one above the phpcs:ignore suffices.
+		$between = substr( $fixed, $ignore_pos + strlen( $ignore_marker ), $func_pos - $ignore_pos - strlen( $ignore_marker ) );
+
+		$this->assertStringNotContainsString(
+			'/**',
+			$between,
+			'Fixer must not insert a duplicate docblock between phpcs:ignore and already_has_docblock().'
+		);
+	}
+
+	/**
+	 * Fixer: Incomplete docblock with phpcs:ignore between should add
+	 * tags to the existing docblock, not create a new one.
+	 *
+	 * @return void
+	 */
+	public function test_fix_adds_tags_to_existing_docblock_through_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// Extract the region around incomplete_docblock().
+		$func_pos = strpos( $fixed, 'function incomplete_docblock' );
+		$region   = substr( $fixed, max( 0, $func_pos - 500 ), 500 );
+
+		// The fixer bug generates a new docblock with [Description placeholder.]
+		// instead of adding @param/@return to the existing "Method description." docblock.
+		$this->assertStringNotContainsString(
+			'[Description placeholder.]',
+			$region,
+			'Fixer must add tags to existing docblock, not create a new one for incomplete_docblock().'
+		);
+
+		// The existing description should still be present.
+		$this->assertStringContainsString( 'Method description.', $region );
+	}
+
+	/**
+	 * Fixer: When no docblock exists and phpcs:ignore is before the
+	 * function, the generated docblock should appear BEFORE the
+	 * phpcs:ignore comment, not between it and the function.
+	 *
+	 * @return void
+	 */
+	public function test_fix_inserts_docblock_before_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// Find the function position (unique name).
+		$func_pos = strpos( $fixed, 'function fixer_insert_before_ignore' );
+		$this->assertNotFalse( $func_pos, 'Fixed content should contain fixer_insert_before_ignore().' );
+
+		// Find the phpcs:ignore before it (unique sniff code).
+		$ignore_pos = strrpos( substr( $fixed, 0, $func_pos ), '// phpcs:ignore Some.Sniff.ToKeep' );
+		$this->assertNotFalse( $ignore_pos, 'Fixed content should still contain phpcs:ignore comment.' );
+
+		// Find the docblock close before the function.
+		$docblock_end = strrpos( substr( $fixed, 0, $func_pos ), '*/' );
+		$this->assertNotFalse( $docblock_end, 'Fixed content should have a generated docblock before fixer_insert_before_ignore().' );
+
+		// The docblock should come BEFORE the phpcs:ignore.
+		$this->assertLessThan(
+			$ignore_pos,
+			$docblock_end,
+			'Generated docblock should be inserted before the phpcs:ignore comment.'
+		);
+	}
+
+	/**
+	 * Fixer: Existing docblock missing tags with phpcs:ignore between
+	 * should add tags to the existing docblock, not create a new one.
+	 *
+	 * @return void
+	 */
+	public function test_fix_existing_docblock_missing_tags_through_phpcs_ignore(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// Extract the region around existing_but_missing_tags().
+		$func_pos = strpos( $fixed, 'function existing_but_missing_tags' );
+		$region   = substr( $fixed, max( 0, $func_pos - 500 ), 500 );
+
+		// The fixer bug generates a new docblock instead of adding to existing.
+		$this->assertStringNotContainsString(
+			'[Description placeholder.]',
+			$region,
+			'Fixer must add tags to existing docblock, not create a new one for existing_but_missing_tags().'
+		);
+
+		// The existing description should still be present.
+		$this->assertStringContainsString( 'Process the data.', $region );
+	}
+
+	/**
+	 * Exact error count on comment-between fixture for regression detection.
+	 *
+	 * @return void
+	 */
+	public function test_exact_error_count_comment_between(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-comment-between.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Expected errors after fix:
+		// Line 59:  MissingDocblock (1)
+		// Line 112: MissingDocblock (1)
+		// Line 139: MissingParamTag x2 + MissingReturnTag (3)
+		// Line 155: MissingDocblock (1)
+		// Line 170: MissingParamTag + MissingReturnTag (2)
+		// Line 203: MissingDocblock (1)
+		// Line 219: MissingDocblock (1)
+		// Line 311: MissingParamTag + MissingReturnTag (2)
+		// Line 319: MissingDocblock (1)
+		// Total: 13
+		$this->assertSame( 13, $file->getErrorCount(), 'Comment-between fixture should have exactly 13 errors.' );
+		$this->assertSame( 0, $file->getWarningCount(), 'Comment-between fixture should have 0 warnings.' );
+	}
 }
