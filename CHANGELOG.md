@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2026-02-23
+
+### Fixed
+
+- `Emrikol.Comments.DocblockTypeSync` — `@param` tags with pass-by-reference (`&$var`), variadic (`...$var`), or reference-variadic (`&...$var`) notation no longer produce false TypeDrift warnings. The `&` and `...` operators are now correctly excluded from the parsed type string in `parse_param_tags()`.
+
 ## [0.3.3] - 2026-02-23
 
 ### Fixed

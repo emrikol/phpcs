@@ -1712,4 +1712,286 @@ class DocblockTypeSyncSniffTest extends BaseSniffTestCase {
 		$this->assertSame( 13, $file->getErrorCount(), 'Comment-between fixture should have exactly 13 errors.' );
 		$this->assertSame( 0, $file->getWarningCount(), 'Comment-between fixture should have 0 warnings.' );
 	}
+
+	// =========================================================================
+	// Pass-by-reference (&$var) fixture — false TypeDrift bug.
+	// =========================================================================
+
+	/**
+	 * Basic reference param with & in docblock should NOT trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_basic_ampersand_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 8: @param string &$value — code: string &$value.
+		$this->assert_no_warning_on_line( $file, 8 );
+	}
+
+	/**
+	 * Reference param WITHOUT & in docblock should also NOT trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_without_ampersand_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 22: @param string $value — code: string &$value.
+		$this->assert_no_warning_on_line( $file, 22 );
+	}
+
+	/**
+	 * Nullable reference param with int|null & in docblock should not drift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_nullable_union_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 32: @param int|null &$counter — code: ?int &$counter.
+		$this->assert_no_warning_on_line( $file, 32 );
+	}
+
+	/**
+	 * Nullable reference param with ?int & in docblock should not drift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_nullable_question_mark_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 46: @param ?int &$counter — code: ?int &$counter.
+		$this->assert_no_warning_on_line( $file, 46 );
+	}
+
+	/**
+	 * Mixed ref and non-ref params — neither should trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_mixed_params_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Lines 60-62: $name (non-ref), &$data (ref), &$count (ref).
+		$this->assert_no_warning_on_line( $file, 60 );
+		$this->assert_no_warning_on_line( $file, 61 );
+		$this->assert_no_warning_on_line( $file, 62 );
+	}
+
+	/**
+	 * Class method with reference param should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_class_method_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 90: @param array &$items — code: array &$items.
+		$this->assert_no_warning_on_line( $file, 90 );
+	}
+
+	/**
+	 * Static method with reference param should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_static_method_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 102: @param string &$buffer — code: string &$buffer.
+		$this->assert_no_warning_on_line( $file, 102 );
+	}
+
+	/**
+	 * Extra whitespace between type and &$var should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_extra_spaces_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 115: @param string    &$value — code: string &$value.
+		$this->assert_no_warning_on_line( $file, 115 );
+	}
+
+	/**
+	 * Union type with reference should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_union_type_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 127: @param string|int &$value — code: string|int &$value.
+		$this->assert_no_warning_on_line( $file, 127 );
+	}
+
+	/**
+	 * Callable followed by reference param — neither should drift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_callable_then_ref_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Lines 139-140: $callback (non-ref), &$results (ref).
+		$this->assert_no_warning_on_line( $file, 139 );
+		$this->assert_no_warning_on_line( $file, 140 );
+	}
+
+	/**
+	 * Original SPX bug case: private method with multiple mixed ref params.
+	 *
+	 * @return void
+	 */
+	public function test_ref_original_spx_bug_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Lines 154-157: $line (non-ref), $attr_time (non-ref), &$stack (ref), &$last_ts (ref).
+		$this->assert_no_warning_on_line( $file, 154 );
+		$this->assert_no_warning_on_line( $file, 155 );
+		$this->assert_no_warning_on_line( $file, 156 );
+		$this->assert_no_warning_on_line( $file, 157 );
+	}
+
+	/**
+	 * No space between & and $ in docblock should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_no_space_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 169: @param string &$value — code: string &$value.
+		$this->assert_no_warning_on_line( $file, 169 );
+	}
+
+	/**
+	 * Variadic param with ... in docblock should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_variadic_ellipsis_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 181: @param string ...$items — code: string ...$items.
+		$this->assert_no_warning_on_line( $file, 181 );
+	}
+
+	/**
+	 * Variadic reference param with &... in docblock should not drift.
+	 *
+	 * @return void
+	 */
+	public function test_variadic_ref_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 192: @param string &...$items — code: string &...$items.
+		$this->assert_no_warning_on_line( $file, 192 );
+	}
+
+	/**
+	 * Object type reference should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_object_type_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 203: @param object &$instance — code: object &$instance.
+		$this->assert_no_warning_on_line( $file, 203 );
+	}
+
+	/**
+	 * Bool type reference should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_bool_type_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 214: @param bool &$flag — code: bool &$flag.
+		$this->assert_no_warning_on_line( $file, 214 );
+	}
+
+	/**
+	 * Mixed type reference should not trigger TypeDrift.
+	 *
+	 * @return void
+	 */
+	public function test_ref_mixed_type_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// Line 226: @param mixed &$data — code: mixed &$data.
+		$this->assert_no_warning_on_line( $file, 226 );
+	}
+
+	/**
+	 * The pass-by-reference fixture should have 0 errors and 0 warnings.
+	 * All docblocks correctly match the code types — the & and ... are
+	 * reference/variadic operators, not part of the type.
+	 *
+	 * @return void
+	 */
+	public function test_exact_counts_pass_by_reference(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-pass-by-reference.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assertSame( 0, $file->getErrorCount(), 'Pass-by-reference fixture should have 0 errors.' );
+		$this->assertSame( 0, $file->getWarningCount(), 'Pass-by-reference fixture should have 0 warnings.' );
+	}
 }

@@ -366,11 +366,13 @@ class DocblockTypeSyncSniff implements Sniff {
 
 			// Find the $variable_name position — handles complex types like
 			// array<string, int> or callable(string): int that contain spaces.
-			if ( preg_match( '/(\$\w+)/', $content, $matches, PREG_OFFSET_CAPTURE ) ) {
+			// The regex also matches optional & (reference) and/or ... (variadic)
+			// operators before the $variable so they are excluded from the type.
+			if ( preg_match( '/(?:&\.{3}|&|\.{3})?(\$\w+)/', $content, $matches, PREG_OFFSET_CAPTURE ) ) {
 				$param_name  = $matches[1][0];
-				$var_pos     = $matches[1][1];
+				$var_pos     = $matches[0][1]; // Start of full match (before & or ...).
 				$param_type  = trim( substr( $content, 0, $var_pos ) );
-				$after_var   = trim( substr( $content, $var_pos + strlen( $param_name ) ) );
+				$after_var   = trim( substr( $content, $matches[1][1] + strlen( $param_name ) ) );
 				$description = $after_var;
 			} else {
 				continue;
