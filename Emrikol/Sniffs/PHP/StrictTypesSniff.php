@@ -48,8 +48,9 @@ class StrictTypesSniff implements Sniff {
 			return;
 		}
 
-		// Skip whitespace, comments, and all docblock sub-tokens to find the
-		// first meaningful statement.
+		// Skip whitespace, comments, all docblock sub-tokens, and PHPCS
+		// directive tokens (which the tokenizer injects into doc comments
+		// when phpcs:disable/enable/ignore directives appear there).
 		$skip_tokens = array(
 			T_WHITESPACE,
 			T_COMMENT,
@@ -60,6 +61,11 @@ class StrictTypesSniff implements Sniff {
 			T_DOC_COMMENT_STAR,
 			T_DOC_COMMENT_TAG,
 			T_DOC_COMMENT_WHITESPACE,
+			T_PHPCS_DISABLE,
+			T_PHPCS_ENABLE,
+			T_PHPCS_IGNORE,
+			T_PHPCS_IGNORE_FILE,
+			T_PHPCS_SET,
 		);
 
 		$next_meaningful = $phpcs_file->findNext(

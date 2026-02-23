@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-02-23
+
+### Fixed
+
+- `Emrikol.PHP.StrictTypes` — files with `phpcs:disable` (or other PHPCS directives) inside the file-level docblock no longer cause a phpcbf infinite loop (FAILED TO FIX). The sniff's `findNext()` skip list now includes `T_PHPCS_DISABLE`, `T_PHPCS_ENABLE`, `T_PHPCS_IGNORE`, `T_PHPCS_IGNORE_FILE`, and `T_PHPCS_SET`, which the PHPCS tokenizer injects into doc comments containing directives. Previously these tokens caused the sniff to stop scanning before reaching the `T_DECLARE` token, so it never detected the existing `declare(strict_types=1)` and kept inserting duplicates on every fixer pass.
+
 ## [0.3.2] - 2026-02-23
 
 ### Fixed

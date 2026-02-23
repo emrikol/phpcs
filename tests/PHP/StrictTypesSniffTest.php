@@ -224,4 +224,78 @@ class StrictTypesSniffTest extends BaseSniffTestCase {
 		// The original declare should still be present.
 		$this->assertStringContainsString( "declare(encoding='UTF-8')", $fixed );
 	}
+
+	/**
+	 * A file with phpcs:disable directives inside the docblock and
+	 * declare(strict_types=1) present should produce no errors.
+	 *
+	 * Regression: T_PHPCS_DISABLE tokens inside docblocks must be
+	 * skipped when scanning for the declare statement.
+	 *
+	 * @return void
+	 */
+	public function test_no_error_with_phpcs_disable_in_docblock(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'strict-types-present-with-phpcs-disable.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_errors( $file );
+	}
+
+	/**
+	 * A file with phpcs:disable directives inside the docblock but no
+	 * declare statement should produce 1 fixable error on line 1.
+	 *
+	 * @return void
+	 */
+	public function test_error_when_missing_with_phpcs_disable_in_docblock(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'strict-types-missing-with-phpcs-disable.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_error_count_on_line( $file, 1, 1 );
+		$this->assert_error_code_on_line( $file, 1, self::ERROR_CODE );
+	}
+
+	/**
+	 * When fixing a file that has phpcs:disable in the docblock, the fixer
+	 * should insert exactly one declare(strict_types=1); after the docblock.
+	 *
+	 * Regression: The fixer must not enter an infinite loop (FAILED TO FIX)
+	 * because T_PHPCS_DISABLE tokens inside the docblock caused findNext()
+	 * to stop before reaching the T_DECLARE token on subsequent passes.
+	 *
+	 * @return void
+	 */
+	public function test_fixer_converges_with_phpcs_disable_in_docblock(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'strict-types-missing-with-phpcs-disable.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// The declare must appear exactly once.
+		$count = substr_count( $fixed, 'declare(strict_types=1);' );
+		$this->assertSame(
+			1,
+			$count,
+			"Expected exactly 1 declare(strict_types=1); in fixed output, found {$count}. "
+			. 'The fixer likely entered an infinite loop due to T_PHPCS_DISABLE tokens in the docblock.'
+		);
+
+		// The declare should appear after the docblock closing tag.
+		$docblock_close_pos = strpos( $fixed, '*/' );
+		$declare_pos        = strpos( $fixed, 'declare(strict_types=1);' );
+
+		$this->assertNotFalse( $docblock_close_pos );
+		$this->assertNotFalse( $declare_pos );
+		$this->assertGreaterThan(
+			$docblock_close_pos,
+			$declare_pos,
+			'declare(strict_types=1); should appear after the docblock closing */.'
+		);
+	}
 }
