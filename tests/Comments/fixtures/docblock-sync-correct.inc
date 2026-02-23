@@ -236,3 +236,71 @@ function multiline_signature(
 ): string {
 	return $first;
 }
+
+// PHPDoc type aliases — these should NOT trigger TypeDrift.
+
+/**
+ * PHPDoc boolean alias for bool.
+ *
+ * @param boolean $flag The flag.
+ *
+ * @return boolean
+ */
+function alias_boolean( bool $flag ): bool {
+	return ! $flag;
+}
+
+/**
+ * PHPDoc integer alias for int.
+ *
+ * @param integer $count The count.
+ *
+ * @return integer
+ */
+function alias_integer( int $count ): int {
+	return $count + 1;
+}
+
+/**
+ * PHPDoc double alias for float.
+ *
+ * @param double $rate The rate.
+ *
+ * @return double
+ */
+function alias_double( float $rate ): float {
+	return $rate * 2;
+}
+
+/**
+ * PHPDoc real alias for float.
+ *
+ * @param real $value The value.
+ *
+ * @return float
+ */
+function alias_real( float $value ): float {
+	return $value;
+}
+
+/**
+ * PHPDoc callback alias for callable.
+ *
+ * @param callback $fn The callback.
+ *
+ * @return void
+ */
+function alias_callback( callable $fn ): void {
+	$fn();
+}
+
+/**
+ * Mixed aliases in union with nullable: boolean|null vs ?bool.
+ *
+ * @param boolean|null $flag The flag.
+ *
+ * @return integer|null
+ */
+function alias_nullable( ?bool $flag ): ?int {
+	return null === $flag ? null : ( $flag ? 1 : 0 );
+}

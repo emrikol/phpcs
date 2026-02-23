@@ -525,12 +525,33 @@ class DocblockTypeSyncSniff implements Sniff {
 		// Sort union parts for stable comparison.
 		if ( false !== strpos( $type, '|' ) ) {
 			$parts = explode( '|', $type );
-			$parts = array_map( 'strtolower', $parts );
+			$parts = array_map( array( $this, 'normalize_type_alias' ), $parts );
 			sort( $parts );
 			return implode( '|', $parts );
 		}
 
-		return strtolower( $type );
+		return $this->normalize_type_alias( $type );
+	}
+
+	/**
+	 * Normalizes a single type token by resolving PHPDoc aliases to their canonical forms.
+	 *
+	 * @param string $type A single type string (not a union).
+	 *
+	 * @return string The canonical lowercase type.
+	 */
+	private function normalize_type_alias( string $type ): string {
+		$type = strtolower( trim( $type ) );
+
+		$aliases = array(
+			'boolean' => 'bool',
+			'integer' => 'int',
+			'double'  => 'float',
+			'real'    => 'float',
+			'callback' => 'callable',
+		);
+
+		return $aliases[ $type ] ?? $type;
 	}
 
 	/**

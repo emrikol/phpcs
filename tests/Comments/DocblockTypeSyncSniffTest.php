@@ -87,6 +87,23 @@ class DocblockTypeSyncSniffTest extends BaseSniffTestCase {
 		$this->assert_no_warnings( $file );
 	}
 
+	/**
+	 * PHPDoc type aliases (boolean, integer, double, real, callback) should
+	 * be treated as equivalent to their canonical PHP types and produce no
+	 * TypeDrift warnings.
+	 *
+	 * @return void
+	 */
+	public function test_no_drift_on_phpdoc_aliases(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-correct.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_errors( $file );
+		$this->assert_no_warnings( $file );
+	}
+
 	// =========================================================================
 	// Empty type fixture — MissingParamType, MissingReturnType.
 	// =========================================================================
