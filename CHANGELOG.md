@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2026-02-23
+
+### Fixed
+
+- `Emrikol.PHP.StrictTypes` — phpcbf no longer auto-inserts `declare(strict_types=1)` into HTML template partials (files starting with HTML before the first `<?php` tag). The fixer was injecting the declaration inside mid-file PHP blocks, which is a PHP syntax error. Template files now receive a non-fixable error instead, since adding strict types automatically could change type coercion behavior in unexpected ways.
+
 ## [0.3.4] - 2026-02-23
 
 ### Fixed

@@ -244,6 +244,89 @@ class StrictTypesSniffTest extends BaseSniffTestCase {
 	}
 
 	/**
+	 * An HTML template file starting with HTML (no leading <?php) and no
+	 * declare statement should produce 1 error.
+	 *
+	 * The error is reported on the first T_OPEN_TAG, which is mid-file.
+	 *
+	 * @return void
+	 */
+	public function test_error_on_html_template_without_strict_types(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'strict-types-html-template.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assertSame( 1, $file->getErrorCount(), 'Expected 1 error for missing strict_types in HTML template.' );
+	}
+
+	/**
+	 * An HTML template with declare(strict_types=1) as the very first statement
+	 * (via <?php declare( strict_types = 1 ); ?> on line 1) should pass.
+	 *
+	 * @return void
+	 */
+	public function test_no_error_on_html_template_with_strict_types(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'strict-types-html-template-present.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$this->assert_no_errors( $file );
+	}
+
+	/**
+	 * HTML template files should NOT be auto-fixed because adding strict_types
+	 * to template partials could change type coercion behavior unexpectedly.
+	 *
+	 * @return void
+	 */
+	public function test_html_template_not_auto_fixed(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'strict-types-html-template.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// The fixer should NOT insert a declare statement.
+		$this->assertStringNotContainsString(
+			'declare(strict_types=1)',
+			$fixed,
+			'HTML template files should not be auto-fixed.'
+		);
+		$this->assertStringNotContainsString(
+			'declare( strict_types = 1 )',
+			$fixed,
+			'HTML template files should not be auto-fixed.'
+		);
+	}
+
+	/**
+	 * HTML template with inline PHP blocks should NOT be auto-fixed.
+	 *
+	 * @return void
+	 */
+	public function test_html_template_with_inline_php_not_auto_fixed(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'strict-types-html-template-inline-php.inc' ),
+			self::SNIFF_CODE
+		);
+
+		$fixed = $this->get_fixed_content( $file );
+
+		// The fixer should NOT insert a declare statement.
+		$this->assertStringNotContainsString(
+			'declare(strict_types=1)',
+			$fixed,
+			'HTML template files should not be auto-fixed.'
+		);
+
+		// The original content should be unchanged.
+		$this->assertStringContainsString( 'foreach ( $projects', $fixed );
+	}
+
+	/**
 	 * A file with phpcs:disable directives inside the docblock but no
 	 * declare statement should produce 1 fixable error on line 1.
 	 *

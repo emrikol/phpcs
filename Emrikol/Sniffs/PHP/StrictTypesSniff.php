@@ -103,7 +103,16 @@ class StrictTypesSniff implements Sniff {
 			return;
 		}
 
-		// No declare statement found — this is fixable.
+		// No declare statement found.
+		// Only auto-fix when the file starts with a PHP open tag.
+		// Template partials (HTML before the first open tag) get a
+		// non-fixable error because adding strict_types automatically
+		// could change type coercion behavior in unexpected ways.
+		if ( T_INLINE_HTML === $tokens[0]['code'] ) {
+			$this->add_error( $phpcs_file, $stack_ptr );
+			return;
+		}
+
 		$this->add_fixable_error( $phpcs_file, $stack_ptr );
 	}
 
@@ -117,7 +126,7 @@ class StrictTypesSniff implements Sniff {
 	 */
 	private function add_error( File $phpcs_file, int $stack_ptr ): void {
 		$phpcs_file->addError(
-			'PHP file must contain declare(strict_types=1); after the opening <?php tag',
+			'PHP file must contain declare(strict_types=1); after the opening PHP tag',
 			$stack_ptr,
 			'MissingStrictTypes'
 		);
@@ -126,7 +135,8 @@ class StrictTypesSniff implements Sniff {
 	/**
 	 * Add a fixable error and insert declare(strict_types=1) when fixing.
 	 *
-	 * Inserts after any file-level docblock, or directly after the opening tag.
+	 * Only called for files that start with a PHP open tag. Inserts after
+	 * any file-level docblock or directly after the opening tag.
 	 *
 	 * @param File $phpcs_file The file being scanned.
 	 * @param int  $stack_ptr  The position of the opening PHP tag.
@@ -135,7 +145,7 @@ class StrictTypesSniff implements Sniff {
 	 */
 	private function add_fixable_error( File $phpcs_file, int $stack_ptr ): void {
 		$fix = $phpcs_file->addFixableError(
-			'PHP file must contain declare(strict_types=1); after the opening <?php tag',
+			'PHP file must contain declare(strict_types=1); after the opening PHP tag',
 			$stack_ptr,
 			'MissingStrictTypes'
 		);
@@ -146,7 +156,7 @@ class StrictTypesSniff implements Sniff {
 
 		$tokens = $phpcs_file->getTokens();
 
-		// Find the insertion point: after any file-level docblock, or after the open tag.
+		// Insert after any file-level docblock, or after the open tag.
 		$insert_after = $stack_ptr;
 
 		// Check if there's a docblock immediately after the opening tag (skipping whitespace).
