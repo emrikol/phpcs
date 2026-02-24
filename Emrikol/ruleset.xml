@@ -21,8 +21,15 @@
 		- Consecutive // → block comment conversion (WrongStyle, fixable).
 		- /** docblock detection when before declarations.
 		All parent Squiz formatting checks are inherited via delegation.
+
+		NoEmptyLineAfter is also excluded: requiring a blank line between a
+		block comment and the code it describes (e.g. add_action() directly
+		below a /* */ comment) breaks the visual pairing and adds noise.
 	-->
 	<rule ref="Squiz.Commenting.BlockComment">
 		<exclude name="Squiz.Commenting.BlockComment"/>
+	</rule>
+	<rule ref="Emrikol.Comments.BlockComment">
+		<exclude name="Emrikol.Comments.BlockComment.NoEmptyLineAfter"/>
 	</rule>
 </ruleset>

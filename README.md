@@ -637,6 +637,23 @@ $x = 1; // Inline comment.
 $y = 2; // Another inline.
 ```
 
+**`NoEmptyLineAfter` is disabled by default.** The inherited Squiz rule requires a blank line between a block comment and the code it introduces. This is excluded from the Emrikol standard because it breaks the visual pairing between a comment and the statement it describes:
+
+```php
+// OK — block comment paired directly with its add_action() call
+/*
+ * Run late on after_setup_theme so the theme has already executed.
+ * PHP_INT_MAX ensures we fire after all theme callbacks.
+ */
+add_action( 'after_setup_theme', 'my_callback', PHP_INT_MAX );
+```
+
+To re-enable it in your project:
+
+```xml
+<rule ref="Emrikol.Comments.BlockComment.NoEmptyLineAfter" />
+```
+
 **Safety guards:** The fixer skips conversion when:
 
 - Comment text contains `*/` (would produce invalid PHP by prematurely closing the block comment).
