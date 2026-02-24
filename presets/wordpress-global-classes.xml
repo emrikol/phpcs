@@ -5,7 +5,7 @@
 	<rule ref="Emrikol.Namespaces.GlobalNamespace">
 		<properties>
 			<!-- Pattern catches any WP_ prefixed class, even those not explicitly listed. -->
-			<property name="class_patterns" type="array">
+			<property name="class_patterns" extend="true" type="array">
 				<element value="/^WP_/" />
 			</property>
 		</properties>

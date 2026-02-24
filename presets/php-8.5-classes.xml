@@ -4,7 +4,7 @@
 
 	<rule ref="Emrikol.Namespaces.GlobalNamespace">
 		<properties>
-			<property name="known_global_classes" type="array">
+			<property name="known_global_classes" extend="true" type="array">
 				<element value="AllowDynamicProperties" />
 				<element value="AppendIterator" />
 				<element value="ArgumentCountError" />

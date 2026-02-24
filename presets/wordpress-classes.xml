@@ -5,7 +5,7 @@
 	<rule ref="Emrikol.Functions.TypeDeclaration">
 		<properties>
 			<property name="validate_types" value="true" />
-			<property name="known_classes" type="array">
+			<property name="known_classes" extend="true" type="array">
 				<element value="WP_Abilities_Registry" />
 				<element value="WP_Ability" />
 				<element value="WP_Ability_Categories_Registry" />

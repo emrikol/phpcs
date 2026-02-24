@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-02-24
+
+### Fixed
+
+- All preset XML files now use `extend="true"` on array properties (`known_classes`, `known_global_classes`, `class_patterns`). Previously, including a preset after a project-level `extend="true"` addition would silently overwrite project additions because the preset's non-extend write wins. With `extend="true"` on both sides, all lists accumulate regardless of XML order. `bin/generate-php-class-list.sh` updated to emit `extend="true"` in future regenerations.
+
 ## [0.5.2] - 2026-02-24
 
 ### Changed

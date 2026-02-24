@@ -166,7 +166,7 @@ HEADER
 		echo ""
 		echo "	<rule ref=\"Emrikol.Namespaces.GlobalNamespace\">"
 		echo "		<properties>"
-		echo "			<property name=\"known_global_classes\" type=\"array\">"
+		echo "			<property name=\"known_global_classes\" extend=\"true\" type=\"array\">"
 
 		while IFS= read -r class; do
 			[ -z "$class" ] && continue
@@ -203,7 +203,7 @@ HEADER
 	echo ""
 	echo "	<rule ref=\"Emrikol.Namespaces.GlobalNamespace\">"
 	echo "		<properties>"
-	echo "			<property name=\"known_global_classes\" type=\"array\">"
+	echo "			<property name=\"known_global_classes\" extend=\"true\" type=\"array\">"
 
 	while IFS= read -r class; do
 		[ -z "$class" ] && continue
