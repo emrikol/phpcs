@@ -976,6 +976,16 @@ my-monorepo/
 
 Running `phpcs-lint.sh plugins/plugin-a` chains `my-monorepo/.phpcs.xml.dist` + `plugins/plugin-a/.phpcs.xml.dist`, so plugin-a inherits all shared rules while using its own prefixes and text domain.
 
+### Self-contained repos (stopping the chain)
+
+If a plugin is its own git repository nested inside a larger repo, the script would normally chain all the way up to the outer repo's root. To prevent this, add a root marker to the plugin's `.phpcs.xml.dist`:
+
+```xml
+<config name="phpcs-lint-root" value="true" />
+```
+
+When the script encounters this marker, it stops chaining there — configs above it are not included. The plugin is treated as its own complete root, regardless of what git repos or configs exist above it.
+
 ---
 
 ## Development

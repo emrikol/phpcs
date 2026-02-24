@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-02-24
+
+### Changed
+
+- `bin/phpcs-lint.sh` — config chaining now stops when a `.phpcs.xml.dist` contains `<config name="phpcs-lint-root" value="true" />`. This lets a plugin that is its own git repo nested inside a larger monorepo declare itself as a self-contained root, preventing configs from the outer repo from being chained in. Without the marker, the original outermost-git-root fallback behavior is preserved.
+
 ## [0.5.1] - 2026-02-24
 
 ### Changed

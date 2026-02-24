@@ -66,24 +66,40 @@ for arg in "$@"; do
 done
 
 # Walk up from a directory, collecting .phpcs.xml.dist files.
-# Stops at the outermost git root or disk root.
+# Stops chaining when a config contains:
+#   <config name="phpcs-lint-root" value="true" />
+# That config is included but nothing above it is chained in, making it
+# a self-contained root (useful for plugins that are their own git repos
+# nested inside a larger monorepo).
+# Falls back to the outermost git root as a boundary when no root marker
+# is present.
 # Prints comma-separated standards string (outermost parent first, target last).
 collect_standards() {
 	local start_dir="$1"
 	local dir="${start_dir}"
 	local configs=()
-	local last_git_root=""
+	local git_root=""
 
-	# Walk up to disk root, collecting configs and tracking git roots.
+	# Walk up to disk root, collecting configs.
+	# Stop immediately when a config declares itself as the phpcs-lint root.
 	while true; do
+		local config=""
 		if [[ -f "${dir}/.phpcs.xml.dist" ]]; then
-			configs+=("${dir}/.phpcs.xml.dist")
+			config="${dir}/.phpcs.xml.dist"
 		elif [[ -f "${dir}/.phpcs.xml" ]]; then
-			configs+=("${dir}/.phpcs.xml")
+			config="${dir}/.phpcs.xml"
+		fi
+
+		if [[ -n "${config}" ]]; then
+			configs+=("${config}")
+			# Root marker — this config is self-contained; don't chain above it.
+			if grep -q 'name="phpcs-lint-root"' "${config}"; then
+				break
+			fi
 		fi
 
 		if [[ -d "${dir}/.git" ]]; then
-			last_git_root="${dir}"
+			git_root="${dir}"
 		fi
 
 		# Stop at disk root.
@@ -95,14 +111,14 @@ collect_standards() {
 		dir="${parent}"
 	done
 
-	# If we found a git root, discard any configs above it.
-	if [[ -n "${last_git_root}" ]]; then
+	# Fallback: if no root marker was found, discard configs above the outermost
+	# git root to avoid chaining into unrelated repositories.
+	if [[ -n "${git_root}" ]]; then
 		local filtered=()
 		for config in "${configs[@]}"; do
 			local config_dir
 			config_dir="$(dirname "${config}")"
-			# Keep configs at or below the outermost git root.
-			if [[ "${config_dir}" == "${last_git_root}" || "${config_dir}" == "${last_git_root}"/* ]]; then
+			if [[ "${config_dir}" == "${git_root}" || "${config_dir}" == "${git_root}"/* ]]; then
 				filtered+=("${config}")
 			fi
 		done
