@@ -11,5 +11,18 @@
 	-->
 	<rule ref="Squiz.Commenting.InlineComment">
 		<exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+		<exclude name="Squiz.Commenting.InlineComment.WrongStyle"/>
+	</rule>
+
+	<!--
+		Exclude Squiz.Commenting.BlockComment — replaced by
+		Emrikol.Comments.BlockComment which adds:
+		- # → // conversion (HashComment, fixable).
+		- Consecutive // → block comment conversion (WrongStyle, fixable).
+		- /** docblock detection when before declarations.
+		All parent Squiz formatting checks are inherited via delegation.
+	-->
+	<rule ref="Squiz.Commenting.BlockComment">
+		<exclude name="Squiz.Commenting.BlockComment"/>
 	</rule>
 </ruleset>

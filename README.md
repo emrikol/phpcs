@@ -584,6 +584,85 @@ if ( isset( $_GET['action'] ) ) { ... }
 
 ---
 
+### `Emrikol.Comments.BlockComment`
+
+Fixable replacement for `Squiz.Commenting.BlockComment` with enhanced comment style enforcement. Extends the Squiz sniff with three capabilities:
+
+1. **Hash comments** (`#`) are converted to `//` format.
+2. **Consecutive `//` comments** (configurable threshold, default 2 lines) are converted to block comments.
+   - Produces `/** */` when immediately before a declaration (function, class, interface, trait, enum, property, const, etc.).
+   - Produces `/* */` for all other comment blocks.
+3. **All existing Squiz block comment formatting checks** are preserved via parent delegation.
+
+**Error codes:** `WrongStyle` (fixable), `HashComment` (fixable), plus all inherited `Squiz.Commenting.BlockComment.*` codes
+
+**Auto-fix:** Yes. `phpcbf` converts `#` to `//`, then converts consecutive `//` to block comments, then Squiz formatting checks run on the result (multi-pass).
+
+```php
+// ERROR (WrongStyle, fixable): Consecutive // should be a block comment
+// This is a long explanation.
+// It spans multiple lines.
+$foo = 'bar';
+
+// Fixed to:
+/*
+ * This is a long explanation.
+ * It spans multiple lines.
+ */
+$foo = 'bar';
+
+// ERROR (WrongStyle, fixable): Before a function → produces /** docblock
+// Greet the user.
+// Returns the greeting string.
+function greet( string $name ): string {}
+
+// Fixed to:
+/**
+ * Greet the user.
+ * Returns the greeting string.
+ */
+function greet( string $name ): string {}
+
+// ERROR (HashComment, fixable): # comments converted to //
+# This is a hash comment.
+
+// Fixed to:
+// This is a hash comment.
+
+// OK — single line (below threshold)
+// This is fine.
+
+// OK — inline end-of-line comments are never grouped
+$x = 1; // Inline comment.
+$y = 2; // Another inline.
+```
+
+**Safety guards:** The fixer skips conversion when:
+
+- Comment text contains `*/` (would produce invalid PHP by prematurely closing the block comment).
+- All lines are bare `//` with no text (empty block comments are deleted by the Squiz parent, causing a fixer conflict loop).
+- Any line contains a PHPCS directive (`// phpcs:ignore`, etc.).
+
+**Declaration detection** for `/**` vs `/*`: Looks past whitespace and PHP 8.0+ attributes (`#[...]`) to find the next significant token. Recognized declaration keywords: `function`, `class`, `interface`, `trait`, `enum`, `const`, `var`, `public`, `protected`, `private`, `abstract`, `final`, `static`, `readonly`.
+
+#### Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `min_lines` | `int` | `2` | Minimum consecutive `//` comment lines to trigger conversion. Set to `3` or higher for less aggressive grouping. |
+
+**Example — require 3+ lines before converting:**
+
+```xml
+<rule ref="Emrikol.Comments.BlockComment">
+    <properties>
+        <property name="min_lines" value="3" />
+    </properties>
+</rule>
+```
+
+---
+
 ### `Emrikol.Comments.InlineCommentPeriod`
 
 Fixable replacement for `Squiz.Commenting.InlineComment.InvalidEndChar`. Inline comments starting with a Unicode letter must end in `.`, `!`, or `?`. Comments ending in a letter get a period auto-appended; other invalid endings are reported as non-fixable.
@@ -816,6 +895,69 @@ git diff presets/
 git add presets/php-*-classes.xml presets/php-global-classes.xml
 git commit -m "Update PHP class lists"
 ```
+
+---
+
+## Monorepo Linting (`phpcs-lint.sh`)
+
+A PHPCS wrapper script that discovers and chains `.phpcs.xml.dist` configs up the directory tree. Designed for monorepos where subdirectories (e.g., individual plugins) need their own PHPCS configuration (prefixes, text domains) while inheriting rules from a parent config.
+
+### How it works
+
+1. Walks up from the target directory to the outermost git root (or disk root).
+2. Collects all `.phpcs.xml.dist` (or `.phpcs.xml`) files along the path.
+3. Chains them via `--standard=parent,child` — child configs override parent properties.
+4. Runs `phpcs` (or `phpcbf` with `--fix`) against the target.
+
+When run without a target path, it lints the root config first, then auto-discovers and lints all child configs (skipping `vendor/` and `node_modules/`).
+
+### Usage
+
+```bash
+# Lint the current directory (discovers all child configs)
+bash vendor/emrikol/phpcs/bin/phpcs-lint.sh
+
+# Lint a specific subdirectory (chains parent configs automatically)
+bash vendor/emrikol/phpcs/bin/phpcs-lint.sh plugins/my-plugin
+
+# Auto-fix a specific subdirectory
+bash vendor/emrikol/phpcs/bin/phpcs-lint.sh --fix plugins/my-plugin
+
+# Pass extra flags to phpcs
+bash vendor/emrikol/phpcs/bin/phpcs-lint.sh -- --report=summary
+```
+
+### Composer integration
+
+Add to your `composer.json`:
+
+```json
+{
+    "scripts": {
+        "lint": "bash vendor/emrikol/phpcs/bin/phpcs-lint.sh",
+        "lint:fix": "bash vendor/emrikol/phpcs/bin/phpcs-lint.sh --fix"
+    }
+}
+```
+
+Then run `composer lint` or `composer lint:fix`.
+
+### Example monorepo structure
+
+```
+my-monorepo/
+├── .phpcs.xml.dist          ← Root config (shared rules, base standard)
+├── plugins/
+│   ├── plugin-a/
+│   │   ├── .phpcs.xml.dist  ← Overrides prefixes, text domain for plugin-a
+│   │   └── plugin-a.php
+│   └── plugin-b/
+│       ├── .phpcs.xml.dist  ← Overrides prefixes, text domain for plugin-b
+│       └── plugin-b.php
+└── vendor/
+```
+
+Running `phpcs-lint.sh plugins/plugin-a` chains `my-monorepo/.phpcs.xml.dist` + `plugins/plugin-a/.phpcs.xml.dist`, so plugin-a inherits all shared rules while using its own prefixes and text domain.
 
 ---
 

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-02-23
+
+### Added
+
+- `Emrikol.Comments.BlockComment` — fixable replacement for `Squiz.Commenting.BlockComment` with enhanced comment style enforcement. Extends the Squiz sniff with: (1) `#` comments converted to `//` (`HashComment`, fixable), (2) consecutive `//` comments converted to block comments (`WrongStyle`, fixable, configurable `min_lines` threshold, default 2), (3) `/**` docblock detection when comment group precedes a declaration (function, class, interface, trait, enum, const, property, etc. — skips past PHP 8.0+ attributes), (4) all existing Squiz block comment formatting checks preserved via parent delegation. Safety guards skip conversion when comment text contains `*/` (would produce invalid PHP) or all lines are bare `//` (empty blocks deleted by Squiz parent).
+
 ## [0.4.0] - 2026-02-23
 
 ### Added

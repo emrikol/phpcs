@@ -1,0 +1,73 @@
+<?php
+
+// Two-line block first line.
+// Two-line block second line.
+$foo = 'bar';
+
+// Three-line block first line.
+// Three-line block second line.
+// Three-line block third line.
+$bar = 'baz';
+
+// Single line comment.
+$baz = 'qux';
+
+$x = 1; // Inline end-of-line comment.
+// Standalone after inline.
+$y = 2;
+
+// Block with blank comment line.
+// Second line.
+//
+// After blank.
+$z = 3;
+
+// Four-line block first.
+// Four-line block second.
+// Four-line block third.
+// Four-line block fourth.
+$a = 4;
+
+	// Tab-indented first.
+	// Tab-indented second.
+	$b = 5;
+
+// No space after slashes first.
+//No space after slashes second.
+$c = 6;
+
+// Group broken by blank line first.
+// Group broken by blank line second.
+
+// New group after blank line.
+$d = 7;
+
+# Hash comment standalone.
+$e = 8;
+
+# Hash multi first.
+# Hash multi second.
+$f = 9;
+
+#No space hash comment.
+$g = 10;
+
+// Before a function.
+// More function docs.
+function test_func() {
+	return true;
+}
+
+// Before a class.
+// More class docs.
+class TestClass {
+	// Before a method.
+	// More method docs.
+	public function method() {
+		return false;
+	}
+
+	// Before a property.
+	// More property docs.
+	public int $prop = 0;
+}
