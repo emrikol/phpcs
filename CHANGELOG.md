@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-03-16
+
+### Fixed
+
+- `Emrikol.Comments.DocblockTypeSync` — PHPStan array shapes (`array{key: type}`), generics (`array<K, V>`), and pseudo-types (`list<T>`, `non-empty-array<T>`, `non-empty-list<T>`) are now recognized as valid specializations of native `array`. Union types are now compared per-component so `array<string, mixed>|\WP_Error` correctly matches code type `array|\WP_Error`. Union splitting is bracket-aware to handle pipes inside braces/brackets (e.g., `array{a: string|int}`).
+
 ## [0.5.3] - 2026-02-24
 
 ### Fixed

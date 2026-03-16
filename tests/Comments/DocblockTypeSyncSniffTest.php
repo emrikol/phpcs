@@ -768,6 +768,92 @@ class DocblockTypeSyncSniffTest extends BaseSniffTestCase {
 		$this->assert_no_warnings( $file );
 	}
 
+	/**
+	 * PHPStan array shapes (array{key: type}) should be accepted as array specializations.
+	 *
+	 * @return void
+	 */
+	public function test_array_shape_return_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-more-specific.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// array{success: bool, data: array{message: string}} vs array.
+		$this->assert_no_warning_on_line( $file, 101 );
+		// array{success: bool, message: string} vs array.
+		$this->assert_no_warning_on_line( $file, 110 );
+	}
+
+	/**
+	 * PHPStan array shapes on @param should be accepted as array specializations.
+	 *
+	 * @return void
+	 */
+	public function test_array_shape_param_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-more-specific.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// @param array{success: bool, data: array{message: string}} $result vs array.
+		$this->assert_no_warning_on_line( $file, 121 );
+	}
+
+	/**
+	 * Generic array types in unions should match per-component.
+	 * e.g., array<int, array<string, mixed>>|\WP_Error vs array|\WP_Error.
+	 *
+	 * @return void
+	 */
+	public function test_generic_union_return_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-more-specific.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// array<int, array<string, mixed>>|\WP_Error vs array|\WP_Error.
+		$this->assert_no_warning_on_line( $file, 131 );
+		// array<string, mixed>|\WP_Error vs array|\WP_Error.
+		$this->assert_no_warning_on_line( $file, 140 );
+	}
+
+	/**
+	 * PHPStan list<>, non-empty-array<>, non-empty-list<> are array specializations.
+	 *
+	 * @return void
+	 */
+	public function test_phpstan_array_pseudo_types_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-more-specific.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// list<string> vs array.
+		$this->assert_no_warning_on_line( $file, 153 );
+		// non-empty-array<string> vs array.
+		$this->assert_no_warning_on_line( $file, 163 );
+		// non-empty-list<int> vs array.
+		$this->assert_no_warning_on_line( $file, 173 );
+	}
+
+	/**
+	 * Bracket-aware union splitting: pipes inside braces/brackets are not split.
+	 *
+	 * @return void
+	 */
+	public function test_bracket_aware_splitting_no_drift(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'docblock-sync-more-specific.inc' ),
+			self::SNIFF_CODE
+		);
+
+		// array{a: string|int, b: bool} vs array — pipe inside braces.
+		$this->assert_no_warning_on_line( $file, 185 );
+		// array{id: int, name: string}|null vs ?array.
+		$this->assert_no_warning_on_line( $file, 195 );
+	}
+
 	// =========================================================================
 	// Edge cases fixture.
 	// =========================================================================

@@ -90,3 +90,107 @@ function nullable_array_specialized( ?array $items ): void {
 function return_specialized(): array {
 	return array( 1, 2, 3 );
 }
+
+// ===== PHPStan array shapes =====
+
+/**
+ * Array shape specialization.
+ *
+ * @return array{success: bool, data: array{message: string}}
+ */
+function return_array_shape(): array {
+	return array( 'success' => true, 'data' => array( 'message' => 'ok' ) );
+}
+
+/**
+ * Simple array shape specialization.
+ *
+ * @return array{success: bool, message: string}
+ */
+function return_simple_shape(): array {
+	return array( 'success' => true, 'message' => 'ok' );
+}
+
+/**
+ * Array shape param specialization.
+ *
+ * @param array{success: bool, data: array{message: string}} $result The result.
+ *
+ * @return void
+ */
+function param_array_shape( array $result ): void {
+}
+
+// ===== PHPStan generics in union types =====
+
+/**
+ * Generic array in union with class.
+ *
+ * @return array<int, array<string, mixed>>|\WP_Error
+ */
+function return_generic_union(): array|\WP_Error {
+	return array();
+}
+
+/**
+ * Simple generic array in union with class.
+ *
+ * @return array<string, mixed>|\WP_Error
+ */
+function return_simple_generic_union(): array|\WP_Error {
+	return array();
+}
+
+// ===== PHPStan pseudo-types =====
+
+/**
+ * List specialization.
+ *
+ * @param list<string> $items The items.
+ *
+ * @return void
+ */
+function param_list( array $items ): void {
+}
+
+/**
+ * Non-empty-array specialization.
+ *
+ * @param non-empty-array<string> $items The items.
+ *
+ * @return void
+ */
+function param_non_empty_array( array $items ): void {
+}
+
+/**
+ * Non-empty-list specialization.
+ *
+ * @param non-empty-list<int> $items The items.
+ *
+ * @return void
+ */
+function param_non_empty_list( array $items ): void {
+}
+
+// ===== Bracket-aware union splitting =====
+
+/**
+ * Array shape with union inside braces — pipe inside brackets must not split.
+ *
+ * @param array{a: string|int, b: bool} $data The data.
+ *
+ * @return void
+ */
+function param_shape_with_inner_union( array $data ): void {
+}
+
+/**
+ * Nullable array shape.
+ *
+ * @param array{id: int, name: string}|null $record The record.
+ *
+ * @return void
+ */
+function param_nullable_shape( ?array $record ): void {
+}

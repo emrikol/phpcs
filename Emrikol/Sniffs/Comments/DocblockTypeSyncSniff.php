@@ -496,7 +496,8 @@ class DocblockTypeSyncSniff implements Sniff {
 	 * Checks if a docblock type is compatible with a code type.
 	 *
 	 * A docblock type is compatible if it matches the code type exactly,
-	 * or if it's a valid specialization (more specific).
+	 * or if it's a valid specialization (more specific). For union types,
+	 * each code component is matched against a doc component individually.
 	 *
 	 * @param string $code_type    The PHP code type.
 	 * @param string $docblock_type The PHPDoc type.
@@ -512,8 +513,93 @@ class DocblockTypeSyncSniff implements Sniff {
 			return true;
 		}
 
-		// Check if docblock is a valid specialization of the code type.
-		return $this->is_specialization( $code_type, $docblock_type );
+		// Decompose into individual union components (bracket-aware).
+		$code_parts = $this->split_union_type( $code_type );
+		$doc_parts  = $this->split_union_type( $docblock_type );
+
+		// Expand ?Type shorthand to Type|null on both sides.
+		if ( 1 === count( $code_parts ) && 0 === strpos( $code_parts[0], '?' ) ) {
+			$code_parts = array( substr( $code_parts[0], 1 ), 'null' );
+		}
+		if ( 1 === count( $doc_parts ) && 0 === strpos( $doc_parts[0], '?' ) ) {
+			$doc_parts = array( substr( $doc_parts[0], 1 ), 'null' );
+		}
+
+		// Separate null from non-null components.
+		$code_non_null = array();
+		$doc_non_null  = array();
+
+		foreach ( $code_parts as $part ) {
+			if ( 'null' !== strtolower( trim( $part ) ) ) {
+				$code_non_null[] = trim( $part );
+			}
+		}
+		foreach ( $doc_parts as $part ) {
+			if ( 'null' !== strtolower( trim( $part ) ) ) {
+				$doc_non_null[] = trim( $part );
+			}
+		}
+
+		// Non-null component count must match.
+		if ( count( $code_non_null ) !== count( $doc_non_null ) ) {
+			return false;
+		}
+
+		// Each code component must match a doc component (exact or specialization).
+		$used = array();
+		foreach ( $code_non_null as $code_part ) {
+			$matched = false;
+			foreach ( $doc_non_null as $idx => $doc_part ) {
+				if ( isset( $used[ $idx ] ) ) {
+					continue;
+				}
+				if ( $this->single_type_compatible( $code_part, $doc_part ) ) {
+					$used[ $idx ] = true;
+					$matched      = true;
+					break;
+				}
+			}
+			if ( ! $matched ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Splits a type string into union components, respecting brackets.
+	 *
+	 * A naive explode('|') would incorrectly split inside angle brackets
+	 * (e.g., array<string|int>) or curly braces (e.g., array{a: string|int}).
+	 * This method tracks bracket depth and only splits on top-level pipes.
+	 *
+	 * @param string $type The type string.
+	 *
+	 * @return array The individual type components.
+	 */
+	private function split_union_type( string $type ): array {
+		$parts = array();
+		$depth = 0;
+		$start = 0;
+		$len   = strlen( $type );
+
+		for ( $i = 0; $i < $len; $i++ ) {
+			$char = $type[ $i ];
+
+			if ( '<' === $char || '(' === $char || '{' === $char ) {
+				$depth++;
+			} elseif ( '>' === $char || ')' === $char || '}' === $char ) {
+				$depth--;
+			} elseif ( '|' === $char && 0 === $depth ) {
+				$parts[] = substr( $type, $start, $i - $start );
+				$start   = $i + 1;
+			}
+		}
+
+		$parts[] = substr( $type, $start );
+
+		return array_map( 'trim', $parts );
 	}
 
 	/**
@@ -531,9 +617,9 @@ class DocblockTypeSyncSniff implements Sniff {
 			$type = substr( $type, 1 ) . '|null';
 		}
 
-		// Sort union parts for stable comparison.
-		if ( false !== strpos( $type, '|' ) ) {
-			$parts = explode( '|', $type );
+		// Sort union parts for stable comparison (bracket-aware).
+		$parts = $this->split_union_type( $type );
+		if ( count( $parts ) > 1 ) {
 			$parts = array_map( array( $this, 'normalize_type_alias' ), $parts );
 			sort( $parts );
 			return implode( '|', $parts );
@@ -568,76 +654,57 @@ class DocblockTypeSyncSniff implements Sniff {
 	}
 
 	/**
-	 * Checks if a docblock type is a valid specialization of a code type.
+	 * Checks if a single (non-union) docblock type is compatible with a code type.
 	 *
-	 * @param string $code_type    The PHP code type.
-	 * @param string $docblock_type The PHPDoc type.
+	 * Handles exact matches after alias normalization, plus valid specializations
+	 * where the docblock provides more detail than the native PHP type allows
+	 * (e.g., array{key: type} for native array, ClassName for native object).
 	 *
-	 * @return bool True if docblock is a valid specialization.
+	 * @param string $code_type    A single code type (no unions).
+	 * @param string $docblock_type A single docblock type (no unions).
+	 *
+	 * @return bool True if compatible (exact match or valid specialization).
 	 */
-	private function is_specialization( string $code_type, string $docblock_type ): bool {
-		// Strip nullable wrappers for base comparison.
-		$code_nullable = ( 0 === strpos( $code_type, '?' ) );
-		$base_code     = $code_nullable ? substr( $code_type, 1 ) : $code_type;
+	private function single_type_compatible( string $code_type, string $docblock_type ): bool {
+		$norm_code = $this->normalize_type_alias( $code_type );
+		$norm_doc  = $this->normalize_type_alias( $docblock_type );
 
-		// Strip |null from docblock type for base comparison.
-		$doc_parts       = explode( '|', $docblock_type );
-		$doc_has_null    = false;
-		$doc_non_null    = array();
-
-		foreach ( $doc_parts as $part ) {
-			$trimmed = trim( $part );
-			if ( 'null' === strtolower( $trimmed ) ) {
-				$doc_has_null = true;
-			} else {
-				$doc_non_null[] = $trimmed;
-			}
+		if ( $norm_code === $norm_doc ) {
+			return true;
 		}
 
-		// If code is nullable, docblock should also include null (or we compare bases).
-		$base_doc = implode( '|', $doc_non_null );
+		$lower_code = strtolower( $code_type );
 
-		// If the base doc type is empty, not compatible.
-		if ( '' === $base_doc ) {
-			return false;
-		}
-
-		$lower_base_code = strtolower( $base_code );
-
-		// array → string[], Type[], array<...>.
-		if ( 'array' === $lower_base_code ) {
-			if ( preg_match( '/\[\]$/', $base_doc ) ) {
+		// array → array{...}, array<...>, Type[], list<...>, non-empty-array<...>, non-empty-list<...>.
+		if ( 'array' === $lower_code ) {
+			if ( preg_match( '/\[\]$/', $docblock_type ) ) {
 				return true;
 			}
-			if ( preg_match( '/^array\s*</', strtolower( $base_doc ) ) ) {
+			if ( preg_match( '/^(array|list|non-empty-array|non-empty-list)\s*[<{]/i', $docblock_type ) ) {
 				return true;
 			}
 		}
 
 		// iterable → iterable<...>.
-		if ( 'iterable' === $lower_base_code ) {
-			if ( preg_match( '/^iterable\s*</', strtolower( $base_doc ) ) ) {
+		if ( 'iterable' === $lower_code ) {
+			if ( preg_match( '/^iterable\s*</i', $docblock_type ) ) {
 				return true;
 			}
 		}
 
 		// object → specific class name.
-		if ( 'object' === $lower_base_code ) {
-			// If the docblock type looks like a class name (not a primitive).
-			if ( $this->looks_like_class_name( $base_doc ) ) {
+		if ( 'object' === $lower_code ) {
+			if ( $this->looks_like_class_name( $docblock_type ) ) {
 				return true;
 			}
 		}
 
 		// callable → \Closure or callable(...).
-		if ( 'callable' === $lower_base_code ) {
-			if ( 'closure' === strtolower( $base_doc ) || '\\closure' === strtolower( $base_doc ) ) {
+		if ( 'callable' === $lower_code ) {
+			if ( preg_match( '/^\\\\?Closure$/i', $docblock_type ) ) {
 				return true;
 			}
-			if ( preg_match( '/^callable\s*\(/', strtolower( $base_doc ) ) ) {
-				return true;
-			}
-			if ( preg_match( '/^\\\\?Closure$/', $base_doc ) ) {
+			if ( preg_match( '/^callable\s*\(/i', $docblock_type ) ) {
 				return true;
 			}
 		}
