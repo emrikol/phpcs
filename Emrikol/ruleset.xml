@@ -15,19 +15,26 @@
 	</rule>
 
 	<!--
-		Exclude Squiz.Commenting.BlockComment — replaced by
+		Suppress Squiz.Commenting.BlockComment globally — replaced by
 		Emrikol.Comments.BlockComment which adds:
 		- # → // conversion (HashComment, fixable).
 		- Consecutive // → block comment conversion (WrongStyle, fixable).
 		- /** docblock detection when before declarations.
 		All parent Squiz formatting checks are inherited via delegation.
 
+		severity=0 is used instead of <exclude> because <exclude> only
+		removes sub-rules from the specific <rule ref> it's nested in.
+		When another standard (e.g. WordPress-Extra) also includes the
+		Squiz sniff, <exclude> has no effect on that second inclusion.
+		severity=0 is a global suppression that persists across the
+		entire PHPCS run regardless of how many standards include it.
+
 		NoEmptyLineAfter is also excluded: requiring a blank line between a
 		block comment and the code it describes (e.g. add_action() directly
 		below a /* */ comment) breaks the visual pairing and adds noise.
 	-->
 	<rule ref="Squiz.Commenting.BlockComment">
-		<exclude name="Squiz.Commenting.BlockComment"/>
+		<severity>0</severity>
 	</rule>
 	<rule ref="Emrikol.Comments.BlockComment">
 		<exclude name="Emrikol.Comments.BlockComment.NoEmptyLineAfter"/>
