@@ -216,15 +216,6 @@ class InlineCommentPeriodSniff extends InlineCommentSniff {
 				return;
 			}
 
-			// Special case for JS files.
-			if ( $tokens[ $previous_content ]['code'] === T_COMMA
-				|| $tokens[ $previous_content ]['code'] === T_SEMICOLON
-			) {
-				$last_content = $phpcs_file->findPrevious( T_WHITESPACE, ( $previous_content - 1 ), null, true );
-				if ( $tokens[ $last_content ]['code'] === T_CLOSE_CURLY_BRACKET ) {
-					return;
-				}
-			}
 		}
 
 		// Only want inline comments.

@@ -39,7 +39,7 @@ class NoHookClosureSniff implements Sniff {
 	 * @return array
 	 */
 	public function register(): array {
-		return array( T_STRING );
+		return array( T_STRING, T_NAME_FULLY_QUALIFIED );
 	}
 
 	/**
@@ -52,7 +52,7 @@ class NoHookClosureSniff implements Sniff {
 	 */
 	public function process( File $phpcs_file, $stack_ptr ): void {
 		$tokens        = $phpcs_file->getTokens();
-		$function_name = $tokens[ $stack_ptr ]['content'];
+		$function_name = ltrim( $tokens[ $stack_ptr ]['content'], '\\' );
 
 		// Check if the token is one of the hook functions.
 		$hook_list = array_map( 'trim', explode( ',', $this->hook_functions ) );
@@ -169,16 +169,9 @@ class NoHookClosureSniff implements Sniff {
 			// These produce closure objects that can't be unhooked either.
 			$class_ptr = $value_ptr;
 
-			// Handle leading namespace separator: \Closure::fromCallable(...).
-			if ( T_NS_SEPARATOR === $tokens[ $class_ptr ]['code'] ) {
-				$class_ptr = $phpcs_file->findNext( Tokens::$emptyTokens, $class_ptr + 1, $close_paren, true );
-				if ( false === $class_ptr ) {
-					continue;
-				}
-			}
-
-			if ( T_STRING === $tokens[ $class_ptr ]['code']
-				&& 'Closure' === $tokens[ $class_ptr ]['content']
+			if ( ( T_STRING === $tokens[ $class_ptr ]['code']
+					|| T_NAME_FULLY_QUALIFIED === $tokens[ $class_ptr ]['code'] )
+				&& 'Closure' === ltrim( $tokens[ $class_ptr ]['content'], '\\' )
 			) {
 				$dbl_colon = $phpcs_file->findNext( Tokens::$emptyTokens, $class_ptr + 1, $close_paren, true );
 				if ( false !== $dbl_colon && T_DOUBLE_COLON === $tokens[ $dbl_colon ]['code'] ) {
@@ -263,6 +256,9 @@ class NoHookClosureSniff implements Sniff {
 		// Tokens that form a callable name expression.
 		$name_tokens = array(
 			T_STRING                   => true,
+			T_NAME_FULLY_QUALIFIED     => true,
+			T_NAME_QUALIFIED           => true,
+			T_NAME_RELATIVE            => true,
 			T_NS_SEPARATOR             => true,
 			T_DOUBLE_COLON             => true,
 			T_OBJECT_OPERATOR          => true,

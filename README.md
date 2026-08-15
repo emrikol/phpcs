@@ -1015,7 +1015,7 @@ The hook validates that:
 ## Requirements
 
 - PHP >= 8.0
-- PHP CodeSniffer >= 3.7
+- PHP CodeSniffer >= 4.0
 
 ## License
 

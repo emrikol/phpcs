@@ -41,7 +41,7 @@ class RequirePermissionCallbackSniff implements Sniff {
 	 * @return array
 	 */
 	public function register(): array {
-		return array( T_STRING );
+		return array( T_STRING, T_NAME_FULLY_QUALIFIED );
 	}
 
 	/**
@@ -54,7 +54,7 @@ class RequirePermissionCallbackSniff implements Sniff {
 	 */
 	public function process( File $phpcs_file, $stack_ptr ): void {
 		$tokens        = $phpcs_file->getTokens();
-		$function_name = $tokens[ $stack_ptr ]['content'];
+		$function_name = ltrim( $tokens[ $stack_ptr ]['content'], '\\' );
 
 		$route_list = array_map( 'trim', explode( ',', $this->route_functions ) );
 
