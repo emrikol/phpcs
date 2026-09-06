@@ -1,0 +1,5 @@
+# Sniff fixtures are compared byte for byte, including their line endings.
+# Git must never normalize them: block-comment-single-line-crlf.inc.* are
+# deliberately CRLF, and block-comment-single-line-eof-no-newline.inc.*
+# deliberately have no final newline.
+tests/**/fixtures/** -text

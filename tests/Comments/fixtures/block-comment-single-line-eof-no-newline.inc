@@ -1,0 +1,4 @@
+<?php
+
+$a = 1;
+/* last line, no trailing newline. */

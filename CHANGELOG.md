@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-09-06
+
+### Changed
+
+- `Emrikol.Comments.BlockComment` — `/* translators: ... */` notes are no longer flagged as `SingleLine` and are never rewritten. WordPress core style writes translator notes in exactly this form, and WPCS excludes `Squiz.Commenting.BlockComment.SingleLine` with the rationale "Excluded to allow `/* translators: ... */` comments" in `WordPress-Docs/ruleset.xml`. Converting them also tripped `Squiz.Commenting.InlineComment.NotCapital`, which our ruleset leaves enabled, so the sniff produced a comment another enabled rule immediately rejected. Detection reuses the `is_translators_comment()` pattern from WPCS's `WordPress.WP.I18n` verbatim, so the two sniffs agree on what a translator note is. Note the pattern requires a space after the opener, so `/*translators: ... */` is still converted.
+
+### Fixed
+
+- `Emrikol.Comments.BlockComment` — converting a single-line block comment to an inline comment no longer inserts a blank line after it. The Squiz parent builds the replacement as `'// ' . $commentText . $phpcsFile->eolChar`, but the newline that follows a block comment is a separate `T_WHITESPACE` token, so the file ended up with two newlines. `SingleLine` is now handled by the sniff itself: it replaces the comment token only and leaves the following whitespace alone. This also stops phpcbf from inventing a trailing newline in a file that had none. The case that matters in real code is `/* translators: %s: thing. */` above a `__()` call — `wp i18n make-pot` attaches translator comments by adjacency, so the blank line silently dropped the note from the POT file.
+
 ## [0.6.0] - 2026-08-14
 
 ### Changed

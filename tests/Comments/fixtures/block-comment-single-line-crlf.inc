@@ -1,0 +1,5 @@
+<?php
+
+$a = 1;
+/* crlf single line block. */
+$b = 2;

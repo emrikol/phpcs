@@ -586,15 +586,18 @@ if ( isset( $_GET['action'] ) ) { ... }
 
 ### `Emrikol.Comments.BlockComment`
 
-Fixable replacement for `Squiz.Commenting.BlockComment` with enhanced comment style enforcement. Extends the Squiz sniff with three capabilities:
+Fixable replacement for `Squiz.Commenting.BlockComment` with enhanced comment style enforcement. Extends the Squiz sniff with four capabilities:
 
 1. **Hash comments** (`#`) are converted to `//` format.
 2. **Consecutive `//` comments** (configurable threshold, default 2 lines) are converted to block comments.
    - Produces `/** */` when immediately before a declaration (function, class, interface, trait, enum, property, const, etc.).
    - Produces `/* */` for all other comment blocks.
-3. **All existing Squiz block comment formatting checks** are preserved via parent delegation.
+3. **Single-line block comments** are converted to `//` without the blank line the Squiz parent leaves behind, and `/* translators: ... */` notes are exempt from the conversion entirely.
+4. **All other existing Squiz block comment formatting checks** are preserved via parent delegation.
 
-**Error codes:** `WrongStyle` (fixable), `HashComment` (fixable), plus all inherited `Squiz.Commenting.BlockComment.*` codes
+**Error codes:** `WrongStyle` (fixable), `HashComment` (fixable), `SingleLine` (fixable unless code follows on the same line), plus all inherited `Squiz.Commenting.BlockComment.*` codes
+
+**Translator comments:** `/* translators: ... */` above a gettext call is never rewritten. WordPress core style uses that exact form, and WPCS excludes `Squiz.Commenting.BlockComment.SingleLine` for the same reason. Detection reuses WPCS's own pattern from `WordPress.WP.I18n`, so it matches `/* translators:`, `/** translators:` and `// translators:`, case-insensitively.
 
 **Auto-fix:** Yes. `phpcbf` converts `#` to `//`, then converts consecutive `//` to block comments, then Squiz formatting checks run on the result (multi-pass).
 

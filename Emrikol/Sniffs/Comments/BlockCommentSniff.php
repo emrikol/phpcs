@@ -12,8 +12,11 @@
  *    - Produces /** when immediately before a declaration (function,
  *      class, interface, trait, enum, property, const).
  *    - Produces /* for all other comment blocks.
- * 3. All existing Squiz block comment formatting checks are preserved
- *    via parent::process() delegation.
+ * 3. Single-line block comments are converted to // without the spurious
+ *    blank line the Squiz parent leaves behind (SingleLine, fixable).
+ *    "translators:" notes are exempt and never rewritten, matching WPCS.
+ * 4. All other existing Squiz block comment formatting checks are
+ *    preserved via parent::process() delegation.
  *
  * Multi-pass fixer ordering:
  * - Pass 1: # → // (HashComment), consecutive // → block (WrongStyle).
@@ -45,6 +48,18 @@ use PHP_CodeSniffer\Util\Tokens;
 class BlockCommentSniff extends SquizBlockCommentSniff {
 
 	/**
+	 * WPCS's own test for whether a comment is a "translators:" note.
+	 *
+	 * Copied verbatim from WordPress.WP.I18n's is_translators_comment() so
+	 * that this sniff agrees with the sniff that actually enforces translator
+	 * notes about which comments are translator notes. Note that it requires
+	 * a space after the opener, so "/*translators: ..." is not a match.
+	 *
+	 * @var string
+	 */
+	private const TRANSLATORS_COMMENT_REGEX = '`^(?:(?://|/\*{1,2}) )?translators:`i';
+
+	/**
 	 * Minimum number of consecutive // comment lines to trigger conversion.
 	 *
 	 * Set via ruleset.xml:
@@ -65,6 +80,8 @@ class BlockCommentSniff extends SquizBlockCommentSniff {
 	 * Routes tokens to the appropriate handler:
 	 * - # comments → process_hash_comment() for # → // conversion.
 	 * - // comments → process_inline_block() for consecutive // detection.
+	 * - Single-line block comments → process_single_line_block(), which
+	 *   overrides the parent's buggy SingleLine fixer.
 	 * - Everything else → parent Squiz sniff for block comment validation.
 	 *
 	 * @param File $phpcs_file The current file being scanned.
@@ -83,6 +100,16 @@ class BlockCommentSniff extends SquizBlockCommentSniff {
 		// Emrikol: Consecutive // comments → block comment.
 		if ( substr( $tokens[ $stack_ptr ]['content'], 0, 2 ) === '//' ) {
 			return $this->process_inline_block( $phpcs_file, $stack_ptr );
+		}
+
+		// Emrikol: Single-line /* */ comments, handled here because the
+		// parent's fixer inserts a blank line. Anything this declines to
+		// handle falls through to the parent unchanged.
+		if ( T_COMMENT === $tokens[ $stack_ptr ]['code']
+			&& substr( $tokens[ $stack_ptr ]['content'], 0, 2 ) === '/*'
+			&& $this->process_single_line_block( $phpcs_file, $stack_ptr )
+		) {
+			return;
 		}
 
 		// For /* */ and /** */ tokens, delegate to Squiz parent.
@@ -127,6 +154,114 @@ class BlockCommentSniff extends SquizBlockCommentSniff {
 		}
 
 		return ( $stack_ptr + 1 );
+	}
+
+	/**
+	 * Convert a single-line block comment to an inline // comment.
+	 *
+	 * This replaces the SingleLine branch of the Squiz parent, which builds
+	 * its replacement as '// ' . $comment_text . $phpcs_file->eolChar. The
+	 * newline that follows a block comment is a SEPARATE T_WHITESPACE
+	 * token, so the parent's appended eolChar lands on top of it and the
+	 * fixed file gains a blank line. The token stream for a block comment
+	 * alone on line 3 is:
+	 *
+	 *      9  L3  T_COMMENT     the comment, with no trailing newline
+	 *     10  L3  T_WHITESPACE  "\n"
+	 *
+	 * We replace the comment token only and leave the whitespace token
+	 * alone, so the converted comment keeps its position relative to the
+	 * next line. That also stops the parent from inventing a trailing
+	 * newline at the end of a file that had none.
+	 *
+	 * The comment collection loop is a direct copy of the parent's, so that
+	 * this method claims exactly the comments the parent would treat as
+	 * single-line. Empty and multi-line block comments are declined and fall
+	 * back to the parent.
+	 *
+	 * @param File $phpcs_file The current file being scanned.
+	 * @param int  $stack_ptr  The position of the block comment token.
+	 *
+	 * @return bool True if this method handled the comment, false to delegate.
+	 */
+	private function process_single_line_block( File $phpcs_file, int $stack_ptr ): bool {
+		$tokens = $phpcs_file->getTokens();
+
+		$comment_lines  = array( $stack_ptr );
+		$next_comment   = $stack_ptr;
+		$last_line      = $tokens[ $stack_ptr ]['line'];
+		$comment_string = $tokens[ $stack_ptr ]['content'];
+
+		// Construct the comment into an array (copied from the Squiz parent).
+		while ( false !== ( $next_comment = $phpcs_file->findNext( T_WHITESPACE, ( $next_comment + 1 ), null, true ) ) ) {
+			if ( $tokens[ $next_comment ]['code'] !== $tokens[ $stack_ptr ]['code']
+				&& isset( Tokens::PHPCS_ANNOTATION_TOKENS[ $tokens[ $next_comment ]['code'] ] ) === false
+			) {
+				// Found the next bit of code.
+				break;
+			}
+
+			if ( ( $tokens[ $next_comment ]['line'] - 1 ) !== $last_line ) {
+				// Not part of the block.
+				break;
+			}
+
+			$last_line       = $tokens[ $next_comment ]['line'];
+			$comment_lines[] = $next_comment;
+			$comment_string .= $tokens[ $next_comment ]['content'];
+
+			if ( T_DOC_COMMENT_CLOSE_TAG === $tokens[ $next_comment ]['code']
+				|| substr( $tokens[ $next_comment ]['content'], -2 ) === '*/'
+			) {
+				break;
+			}
+		}
+
+		if ( count( $comment_lines ) !== 1 ) {
+			// Multi-line block comment — the parent owns this.
+			return false;
+		}
+
+		// Emrikol: leave "translators:" notes alone. WordPress core style
+		// writes them as single-line block comments, and WPCS excludes
+		// Squiz.Commenting.BlockComment.SingleLine for exactly this reason
+		// ("Excluded to allow /* translators: ... */ comments", in
+		// WordPress-Docs/ruleset.xml). Rewriting one to // also trips
+		// Squiz.Commenting.InlineComment.NotCapital, which our ruleset leaves
+		// enabled, so the conversion produces a comment we then reject.
+		if ( preg_match( self::TRANSLATORS_COMMENT_REGEX, trim( $tokens[ $stack_ptr ]['content'] ) ) === 1 ) {
+			return true;
+		}
+
+		$comment_text = str_replace( $phpcs_file->eolChar, '', $comment_string );
+		$comment_text = trim( $comment_text, "/* \t" );
+
+		if ( '' === $comment_text ) {
+			// Empty block comment — the parent reports and removes it.
+			return false;
+		}
+
+		$error = 'Single line block comment not allowed; use inline ("// text") comment instead';
+
+		// Only fix comments when they are the last token on a line. Rewriting
+		// a comment with code after it would comment that code out.
+		$next_non_empty = $phpcs_file->findNext( Tokens::EMPTY_TOKENS, ( $stack_ptr + 1 ), null, true );
+		if ( false !== $next_non_empty
+			&& $tokens[ $next_non_empty ]['line'] === $tokens[ $stack_ptr ]['line']
+		) {
+			$phpcs_file->addError( $error, $stack_ptr, 'SingleLine' );
+
+			return true;
+		}
+
+		$fix = $phpcs_file->addFixableError( $error, $stack_ptr, 'SingleLine' );
+
+		if ( true === $fix ) {
+			// Emrikol: no eolChar here. See the note above.
+			$phpcs_file->fixer->replaceToken( $stack_ptr, '// ' . $comment_text );
+		}
+
+		return true;
 	}
 
 	/**
