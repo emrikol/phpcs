@@ -451,7 +451,8 @@ class BlockCommentSniff extends SquizBlockCommentSniff {
 		$first_token = $comment_tokens[0];
 		$indent      = '';
 		if ( $first_token > 0 && T_WHITESPACE === $tokens[ ( $first_token - 1 ) ]['code'] ) {
-			$ws_content = $tokens[ ( $first_token - 1 ) ]['content'];
+			// With a tab width set, 'content' has spaces for tabs; 'orig_content' keeps them.
+			$ws_content = $tokens[ ( $first_token - 1 ) ]['orig_content'] ?? $tokens[ ( $first_token - 1 ) ]['content'];
 			// Only use the part after the last newline (pure indentation).
 			$last_newline = strrpos( $ws_content, "\n" );
 			if ( false === $last_newline ) {

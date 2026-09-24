@@ -283,6 +283,30 @@ class BlockCommentSniffTest extends BaseSniffTestCase {
 	}
 
 	/**
+	 * Test that the fixer keeps tab indentation when a tab width is set.
+	 *
+	 * With a tab width, PHPCS replaces tabs with spaces in token content and
+	 * keeps the original in orig_content. WordPress rulesets set a tab width
+	 * of 4, so without orig_content the block comment lines were indented
+	 * with spaces in a tab-indented file.
+	 *
+	 * @return void
+	 */
+	public function test_fixer_keeps_tabs_with_tab_width(): void {
+		$file = $this->check_file(
+			$this->get_fixture_path( 'block-comment-tab-width.inc' ),
+			self::SNIFF_CODE,
+			array(),
+			array( 'tabWidth' => 4 )
+		);
+
+		$fixed    = $this->get_fixed_content( $file );
+		$expected = file_get_contents( $this->get_fixture_path( 'block-comment-tab-width.inc.fixed' ) );
+
+		$this->assertSame( $expected, $fixed );
+	}
+
+	/**
 	 * Test min_lines=3 skips 2-line blocks.
 	 *
 	 * @return void

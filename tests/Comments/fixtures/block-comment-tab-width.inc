@@ -1,0 +1,9 @@
+<?php
+
+function example() {
+	if ( true ) {
+		// First line of a comment.
+		// Second line of a comment.
+		$x = 1;
+	}
+}

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `Emrikol.Comments.BlockComment` — converting consecutive `//` comments to a block comment no longer indents its lines with spaces in a tab-indented file. The fixer took the indentation from the whitespace token's `content`, where PHPCS replaces tabs with spaces whenever a tab width is set, and WordPress rulesets set one. It now reads `orig_content`, which keeps the tabs.
+
 ## [0.6.1] - 2026-09-06
 
 ### Changed
